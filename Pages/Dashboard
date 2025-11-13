@@ -1,0 +1,216 @@
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CreditCard, Users, TrendingUp, AlertCircle, DollarSign, FileText } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+
+export default function Dashboard() {
+  const { data: cartoes = [] } = useQuery({
+    queryKey: ['cartoes'],
+    queryFn: () => base44.entities.Cartao.list()
+  });
+
+  const { data: cooperados = [] } = useQuery({
+    queryKey: ['cooperados'],
+    queryFn: () => base44.entities.Cooperado.list()
+  });
+
+  const { data: transacoes = [] } = useQuery({
+    queryKey: ['transacoes-recentes'],
+    queryFn: () => base44.entities.Transacao.list('-data_hora', 10)
+  });
+
+  const { data: faturas = [] } = useQuery({
+    queryKey: ['faturas'],
+    queryFn: () => base44.entities.Fatura.list()
+  });
+
+  // Cálculos
+  const cartoesAtivos = cartoes.filter(c => c.estado_cartao === 'ativo').length;
+  const cartoesBloqueados = cartoes.filter(c => c.estado_cartao?.includes('bloqueado')).length;
+  const faturasVencidas = faturas.filter(f => f.status === 'vencida').length;
+  const totalLimiteUtilizado = cartoes.reduce((sum, c) => sum + (c.limite_credito_utilizado || 0), 0);
+  const totalLimiteDisponivel = cartoes.reduce((sum, c) => sum + ((c.limite_credito_implantado || 0) - (c.limite_credito_utilizado || 0)), 0);
+
+  const StatCard = ({ title, value, icon: Icon, color, badge }) => (
+    <Card className="hover:shadow-lg transition-shadow border-l-4" style={{ borderLeftColor: color }}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-600">{title}</p>
+            <h3 className="text-3xl font-bold mt-2 text-slate-800">{value}</h3>
+          </div>
+          <div className="p-3 rounded-xl" style={{ backgroundColor: `${color}15` }}>
+            <Icon className="w-6 h-6" style={{ color }} />
+          </div>
+        </div>
+      </CardHeader>
+      {badge && (
+        <CardContent className="pt-0">
+          {badge}
+        </CardContent>
+      )}
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title="Cartões Ativos"
+          value={cartoesAtivos}
+          icon={CreditCard}
+          color="#4A9B8E"
+          badge={<Badge variant="secondary" className="bg-emerald-50 text-emerald-700">Em operação</Badge>}
+        />
+        <StatCard
+          title="Cooperados"
+          value={cooperados.length}
+          icon={Users}
+          color="#3B82F6"
+        />
+        <StatCard
+          title="Limite Utilizado"
+          value={`R$ ${(totalLimiteUtilizado / 1000).toFixed(0)}K`}
+          icon={DollarSign}
+          color="#F59E0B"
+        />
+        <StatCard
+          title="Faturas Vencidas"
+          value={faturasVencidas}
+          icon={AlertCircle}
+          color={faturasVencidas > 0 ? "#EF4444" : "#10B981"}
+          badge={faturasVencidas > 0 && <Badge variant="destructive">Requer atenção</Badge>}
+        />
+      </div>
+
+      {/* Second Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-orange-500" />
+              Alertas e Bloqueios
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <span className="text-sm font-medium text-slate-700">Cartões Bloqueados</span>
+                <Badge className="bg-red-600">{cartoesBloqueados}</Badge>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                <span className="text-sm font-medium text-slate-700">Faturas Atrasadas</span>
+                <Badge className="bg-orange-600">{faturasVencidas}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+              Limite de Crédito
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-slate-600">Utilizado</span>
+                  <span className="font-semibold text-slate-800">
+                    R$ {totalLimiteUtilizado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-[#4A9B8E] to-[#3A7B6E]"
+                    style={{ width: `${(totalLimiteUtilizado / (totalLimiteUtilizado + totalLimiteDisponivel)) * 100}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Disponível</span>
+                <span className="font-semibold text-emerald-600">
+                  R$ {totalLimiteDisponivel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-500" />
+              Resumo de Faturas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Abertas</span>
+                <Badge variant="secondary">{faturas.filter(f => f.status === 'aberta').length}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Pagas</span>
+                <Badge className="bg-emerald-600">{faturas.filter(f => f.status === 'paga').length}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-slate-600">Vencidas</span>
+                <Badge variant="destructive">{faturasVencidas}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Transactions */}
+      <Card className="hover:shadow-lg transition-shadow">
+        <CardHeader>
+          <CardTitle className="text-lg">Transações Recentes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {transacoes.length === 0 ? (
+              <p className="text-center text-slate-500 py-8">Nenhuma transação registrada</p>
+            ) : (
+              transacoes.map((transacao) => (
+                <div key={transacao.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      transacao.tipo_transacao === 'compra' ? 'bg-blue-100' :
+                      transacao.tipo_transacao === 'saque' ? 'bg-orange-100' :
+                      transacao.tipo_transacao === 'pagamento' ? 'bg-emerald-100' : 'bg-slate-100'
+                    }`}>
+                      <CreditCard className={`w-5 h-5 ${
+                        transacao.tipo_transacao === 'compra' ? 'text-blue-600' :
+                        transacao.tipo_transacao === 'saque' ? 'text-orange-600' :
+                        transacao.tipo_transacao === 'pagamento' ? 'text-emerald-600' : 'text-slate-600'
+                      }`} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-800">{transacao.descricao || transacao.tipo_transacao}</p>
+                      <p className="text-sm text-slate-500">{transacao.estabelecimento || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-slate-800">
+                      R$ {transacao.valor?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </p>
+                    <Badge variant={transacao.status === 'aprovada' ? 'default' : 'secondary'} className="text-xs">
+                      {transacao.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

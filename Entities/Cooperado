@@ -1,0 +1,85 @@
+{
+  "name": "Cooperado",
+  "type": "object",
+  "properties": {
+    "cpf": {
+      "type": "string",
+      "description": "CPF do cooperado"
+    },
+    "nome_completo": {
+      "type": "string",
+      "description": "Nome completo do cooperado"
+    },
+    "nome_impresso_cartao": {
+      "type": "string",
+      "description": "Nome que aparece no cart\u00e3o"
+    },
+    "rg": {
+      "type": "string"
+    },
+    "data_nascimento": {
+      "type": "string",
+      "format": "date"
+    },
+    "sexo": {
+      "type": "string",
+      "enum": [
+        "M",
+        "F",
+        "Outro"
+      ]
+    },
+    "email": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string"
+    },
+    "celular": {
+      "type": "string"
+    },
+    "endereco": {
+      "type": "string"
+    },
+    "numero": {
+      "type": "string"
+    },
+    "complemento": {
+      "type": "string"
+    },
+    "bairro": {
+      "type": "string"
+    },
+    "cidade": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "string"
+    },
+    "cep": {
+      "type": "string"
+    },
+    "cooperativa_id": {
+      "type": "string",
+      "description": "ID da cooperativa"
+    },
+    "conta_corrente": {
+      "type": "string",
+      "description": "Conta corrente vinculada"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "inativo",
+        "bloqueado",
+        "anulado"
+      ],
+      "default": "ativo"
+    }
+  },
+  "required": [
+    "cpf",
+    "nome_completo"
+  ]
+}

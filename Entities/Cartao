@@ -1,0 +1,177 @@
+{
+  "name": "Cartao",
+  "type": "object",
+  "properties": {
+    "numero_cartao": {
+      "type": "string",
+      "description": "N\u00famero do cart\u00e3o (mascarado)"
+    },
+    "conta_cartao": {
+      "type": "string",
+      "description": "N\u00famero da conta cart\u00e3o"
+    },
+    "cooperado_id": {
+      "type": "string",
+      "description": "ID do cooperado titular"
+    },
+    "cooperativa_id": {
+      "type": "string",
+      "description": "ID da cooperativa"
+    },
+    "tipo_cartao": {
+      "type": "string",
+      "enum": [
+        "classic",
+        "gold",
+        "platinum",
+        "infinite",
+        "electron",
+        "universitario",
+        "kids",
+        "salario"
+      ],
+      "description": "Tipo/categoria do cart\u00e3o"
+    },
+    "bandeira": {
+      "type": "string",
+      "enum": [
+        "visa",
+        "mastercard"
+      ],
+      "description": "Bandeira do cart\u00e3o"
+    },
+    "tipo_titular": {
+      "type": "string",
+      "enum": [
+        "titular",
+        "adicional"
+      ],
+      "default": "titular"
+    },
+    "cartao_principal_id": {
+      "type": "string",
+      "description": "ID do cart\u00e3o principal (se for adicional)"
+    },
+    "data_validade": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_ativacao": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_primeira_compra": {
+      "type": "string",
+      "format": "date"
+    },
+    "data_ultima_compra": {
+      "type": "string",
+      "format": "date"
+    },
+    "limite_credito_implantado": {
+      "type": "number",
+      "description": "Limite de cr\u00e9dito total"
+    },
+    "limite_credito_utilizado": {
+      "type": "number",
+      "description": "Limite utilizado"
+    },
+    "limite_diario_debito": {
+      "type": "number",
+      "description": "Limite di\u00e1rio para d\u00e9bito"
+    },
+    "limite_diario_credito": {
+      "type": "number",
+      "description": "Limite di\u00e1rio para cr\u00e9dito"
+    },
+    "limite_diario_saque": {
+      "type": "number",
+      "description": "Limite di\u00e1rio para saque"
+    },
+    "estado_cartao": {
+      "type": "string",
+      "enum": [
+        "ativo",
+        "bloqueado_preventivo",
+        "bloqueado_perda",
+        "bloqueado_roubo",
+        "vencido",
+        "cancelado",
+        "fraude",
+        "anulado"
+      ],
+      "default": "ativo"
+    },
+    "estado_conta": {
+      "type": "string",
+      "enum": [
+        "ativa",
+        "bloqueada",
+        "cancelada",
+        "anulada"
+      ],
+      "default": "ativa"
+    },
+    "debito_automatico": {
+      "type": "boolean",
+      "default": false
+    },
+    "conta_debito_automatico": {
+      "type": "string",
+      "description": "Conta para d\u00e9bito autom\u00e1tico"
+    },
+    "dia_vencimento": {
+      "type": "integer",
+      "description": "Dia do vencimento da fatura"
+    },
+    "tipo_fatura": {
+      "type": "string",
+      "enum": [
+        "online",
+        "impressa"
+      ],
+      "default": "online"
+    },
+    "valor_proxima_fatura": {
+      "type": "number",
+      "description": "Valor da pr\u00f3xima fatura"
+    },
+    "divida_consolidada": {
+      "type": "number",
+      "description": "D\u00edvida total consolidada"
+    },
+    "status_rastreamento": {
+      "type": "string",
+      "description": "Status de entrega do cart\u00e3o"
+    },
+    "bloqueio_online": {
+      "type": "boolean",
+      "default": false
+    },
+    "bloqueio_presencial": {
+      "type": "boolean",
+      "default": false
+    },
+    "bloqueio_aproximacao": {
+      "type": "boolean",
+      "default": false
+    },
+    "bloqueio_saque": {
+      "type": "boolean",
+      "default": false
+    },
+    "bloqueio_internacional": {
+      "type": "boolean",
+      "default": true
+    },
+    "saldo_pontos": {
+      "type": "number",
+      "description": "Pontos do programa de recompensas"
+    }
+  },
+  "required": [
+    "cooperado_id",
+    "tipo_cartao",
+    "bandeira"
+  ]
+}

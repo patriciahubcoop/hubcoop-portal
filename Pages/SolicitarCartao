@@ -1,0 +1,308 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, CheckCircle, CreditCard } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function SolicitacaoCartao() {
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    cooperado_id: '',
+    tipo_cartao: '',
+    bandeira: 'visa',
+    limite_credito_implantado: 5000,
+    dia_vencimento: 10
+  });
+
+  const queryClient = useQueryClient();
+
+  const { data: cooperados = [] } = useQuery({
+    queryKey: ['cooperados'],
+    queryFn: () => base44.entities.Cooperado.list()
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Cartao.create({
+      ...data,
+      estado_cartao: 'ativo',
+      estado_conta: 'ativa',
+      debito_automatico: false,
+      tipo_fatura: 'online',
+      limite_credito_utilizado: 0,
+      limite_diario_debito: 2000,
+      limite_diario_credito: data.limite_credito_implantado * 0.5,
+      limite_diario_saque: 1000,
+      data_validade: new Date(new Date().setFullYear(new Date().getFullYear() + 4)).toISOString().split('T')[0],
+      data_ativacao: new Date().toISOString().split('T')[0],
+      numero_cartao: `**** **** **** ${Math.floor(1000 + Math.random() * 9000)}`,
+      conta_cartao: `CC-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}-${Math.floor(100000 + Math.random() * 900000)}`,
+      saldo_pontos: 0,
+      tipo_titular: 'titular'
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['cartoes']);
+      setStep(4);
+    }
+  });
+
+  const tiposCartao = [
+    { value: 'classic', label: 'Classic', color: 'from-blue-500 to-blue-600', desc: 'Cartão básico com benefícios essenciais' },
+    { value: 'gold', label: 'Gold', color: 'from-amber-400 to-amber-500', desc: 'Maior limite e benefícios adicionais' },
+    { value: 'platinum', label: 'Platinum', color: 'from-slate-300 to-slate-400', desc: 'Benefícios premium e seguros' },
+    { value: 'infinite', label: 'Infinite', color: 'from-purple-600 to-purple-700', desc: 'Cartão top com acesso a salas VIP' }
+  ];
+
+  const handleNext = () => {
+    if (step === 3) {
+      createMutation.mutate(formData);
+    } else {
+      setStep(step + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setStep(step - 1);
+  };
+
+  const cooperado = cooperados.find(c => c.id === formData.cooperado_id);
+  const tipoSelecionado = tiposCartao.find(t => t.value === formData.tipo_cartao);
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Progress Steps */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            {['Cooperado', 'Tipo de Cartão', 'Dados do Cartão', 'Confirmação'].map((label, index) => (
+              <div key={index} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                    step > index + 1 ? 'bg-emerald-500 text-white' :
+                    step === index + 1 ? 'bg-[#4A9B8E] text-white' :
+                    'bg-slate-200 text-slate-500'
+                  }`}>
+                    {step > index + 1 ? <CheckCircle className="w-5 h-5" /> : index + 1}
+                  </div>
+                  <span className="text-xs mt-2 text-slate-600">{label}</span>
+                </div>
+                {index < 3 && (
+                  <div className={`w-24 h-1 mx-2 ${step > index + 1 ? 'bg-emerald-500' : 'bg-slate-200'}`} />
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Step 1: Seleção de Cooperado */}
+      {step === 1 && (
+        <Card className="border-t-4 border-t-[#4A9B8E]">
+          <CardHeader>
+            <CardTitle>Selecione o Cooperado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Cooperado *</Label>
+              <Select value={formData.cooperado_id} onValueChange={(value) => setFormData({ ...formData, cooperado_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cooperado..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {cooperados.filter(c => c.status === 'ativo').map(cooperado => (
+                    <SelectItem key={cooperado.id} value={cooperado.id}>
+                      {cooperado.nome_completo} - {cooperado.cpf}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {cooperado && (
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <h3 className="font-semibold mb-2">Dados do Cooperado</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-slate-500">CPF:</span>
+                    <span className="ml-2 font-medium">{cooperado.cpf}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">E-mail:</span>
+                    <span className="ml-2 font-medium">{cooperado.email}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Telefone:</span>
+                    <span className="ml-2 font-medium">{cooperado.celular}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Conta:</span>
+                    <span className="ml-2 font-medium">{cooperado.conta_corrente}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4">
+              <Button 
+                onClick={handleNext} 
+                disabled={!formData.cooperado_id}
+                className="bg-[#4A9B8E] hover:bg-[#3A7B6E]"
+              >
+                Próximo <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 2: Tipo de Cartão */}
+      {step === 2 && (
+        <Card className="border-t-4 border-t-[#4A9B8E]">
+          <CardHeader>
+            <CardTitle>Selecione o Tipo de Cartão</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {tiposCartao.map((tipo) => (
+                <div
+                  key={tipo.value}
+                  onClick={() => setFormData({ ...formData, tipo_cartao: tipo.value })}
+                  className={`relative cursor-pointer rounded-xl p-6 border-2 transition-all ${
+                    formData.tipo_cartao === tipo.value
+                      ? 'border-[#4A9B8E] bg-[#4A9B8E]/5'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className={`w-full h-32 rounded-lg bg-gradient-to-br ${tipo.color} mb-4 flex items-center justify-center text-white`}>
+                    <div className="text-center">
+                      <CreditCard className="w-12 h-12 mx-auto mb-2" />
+                      <p className="font-bold text-xl">{tipo.label}</p>
+                    </div>
+                  </div>
+                  <h3 className="font-semibold text-lg mb-1">{tipo.label}</h3>
+                  <p className="text-sm text-slate-500">{tipo.desc}</p>
+                  {formData.tipo_cartao === tipo.value && (
+                    <div className="absolute top-4 right-4">
+                      <CheckCircle className="w-6 h-6 text-[#4A9B8E]" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={handleBack}>
+                Voltar
+              </Button>
+              <Button 
+                onClick={handleNext} 
+                disabled={!formData.tipo_cartao}
+                className="bg-[#4A9B8E] hover:bg-[#3A7B6E]"
+              >
+                Próximo <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 3: Dados do Cartão */}
+      {step === 3 && (
+        <Card className="border-t-4 border-t-[#4A9B8E]">
+          <CardHeader>
+            <CardTitle>Dados do Cartão</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Bandeira *</Label>
+                <Select value={formData.bandeira} onValueChange={(value) => setFormData({ ...formData, bandeira: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="visa">Visa</SelectItem>
+                    <SelectItem value="mastercard">Mastercard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dia de Vencimento *</Label>
+                <Select value={String(formData.dia_vencimento)} onValueChange={(value) => setFormData({ ...formData, dia_vencimento: parseInt(value) })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[5, 10, 15, 20, 25].map(dia => (
+                      <SelectItem key={dia} value={String(dia)}>Dia {dia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label>Limite de Crédito (R$) *</Label>
+                <Input
+                  type="number"
+                  value={formData.limite_credito_implantado}
+                  onChange={(e) => setFormData({ ...formData, limite_credito_implantado: parseFloat(e.target.value) })}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              <Button variant="outline" onClick={handleBack}>
+                Voltar
+              </Button>
+              <Button 
+                onClick={handleNext}
+                className="bg-[#4A9B8E] hover:bg-[#3A7B6E]"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? 'Processando...' : 'Confirmar Solicitação'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 4: Confirmação */}
+      {step === 4 && (
+        <Card className="border-t-4 border-t-emerald-500">
+          <CardContent className="py-12 text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-12 h-12 text-emerald-600" />
+            </div>
+            <h2 className="text-2xl font-bold mb-4">Solicitação Realizada com Sucesso!</h2>
+            <p className="text-slate-600 mb-8">
+              O cartão {tipoSelecionado?.label} foi solicitado para {cooperado?.nome_completo}.
+              <br />
+              O cartão será enviado em até 15 dias úteis.
+            </p>
+            <Button 
+              onClick={() => {
+                setStep(1);
+                setFormData({
+                  cooperado_id: '',
+                  tipo_cartao: '',
+                  bandeira: 'visa',
+                  limite_credito_implantado: 5000,
+                  dia_vencimento: 10
+                });
+              }}
+              className="bg-[#4A9B8E] hover:bg-[#3A7B6E]"
+            >
+              Nova Solicitação
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

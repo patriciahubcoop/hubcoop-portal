@@ -1,0 +1,347 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Download, Eye, FileText, AlertCircle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+export default function Faturas() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedFatura, setSelectedFatura] = useState(null);
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
+
+  const { data: faturas = [], isLoading } = useQuery({
+    queryKey: ['faturas'],
+    queryFn: () => base44.entities.Fatura.list('-created_date')
+  });
+
+  const { data: cooperados = [] } = useQuery({
+    queryKey: ['cooperados'],
+    queryFn: () => base44.entities.Cooperado.list()
+  });
+
+  const { data: cartoes = [] } = useQuery({
+    queryKey: ['cartoes'],
+    queryFn: () => base44.entities.Cartao.list()
+  });
+
+  const getCooperado = (cooperadoId) => cooperados.find(c => c.id === cooperadoId);
+  const getCartao = (cartaoId) => cartoes.find(c => c.id === cartaoId);
+
+  const filteredFaturas = faturas.filter(f => {
+    const cooperado = getCooperado(f.cooperado_id);
+    const matchesSearch = 
+      cooperado?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.conta_cartao?.includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || f.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const totalFaturas = faturas.length;
+  const faturasAbertas = faturas.filter(f => f.status === 'aberta').length;
+  const faturasVencidas = faturas.filter(f => f.status === 'vencida').length;
+  const totalReceber = faturas
+    .filter(f => f.status === 'aberta' || f.status === 'vencida')
+    .reduce((sum, f) => sum + (f.valor_total || 0), 0);
+
+  const statusIcons = {
+    aberta: Clock,
+    fechada: FileText,
+    paga: CheckCircle2,
+    paga_parcial: CheckCircle2,
+    vencida: AlertCircle,
+    parcelada: FileText,
+    cessao_credito: XCircle
+  };
+
+  const statusColors = {
+    aberta: 'bg-blue-100 text-blue-700 border-blue-200',
+    fechada: 'bg-slate-100 text-slate-700 border-slate-200',
+    paga: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    paga_parcial: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    vencida: 'bg-red-100 text-red-700 border-red-200',
+    parcelada: 'bg-purple-100 text-purple-700 border-purple-200',
+    cessao_credito: 'bg-orange-100 text-orange-700 border-orange-200'
+  };
+
+  const visualizarFatura = (fatura) => {
+    setSelectedFatura(fatura);
+    setDetalhesOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="border-t-4 border-t-[#4A9B8E]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Total Faturas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{totalFaturas}</span>
+              <div className="p-3 rounded-xl bg-[#4A9B8E]/10">
+                <FileText className="w-6 h-6 text-[#4A9B8E]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-blue-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Faturas Abertas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{faturasAbertas}</span>
+              <div className="p-3 rounded-xl bg-blue-50">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-red-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Faturas Vencidas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{faturasVencidas}</span>
+              <div className="p-3 rounded-xl bg-red-50">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-orange-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Total a Receber</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-bold text-slate-800">
+                R$ {(totalReceber / 1000).toFixed(0)}K
+              </span>
+              <div className="p-3 rounded-xl bg-orange-50">
+                <FileText className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-t-4 border-t-[#4A9B8E]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Gestão de Faturas</CardTitle>
+              <p className="text-sm text-slate-500 mt-1">Acompanhamento e gerenciamento de faturas</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Input
+                  placeholder="Buscar por cooperado ou conta cartão..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="aberta">Aberta</SelectItem>
+                  <SelectItem value="fechada">Fechada</SelectItem>
+                  <SelectItem value="paga">Paga</SelectItem>
+                  <SelectItem value="vencida">Vencida</SelectItem>
+                  <SelectItem value="parcelada">Parcelada</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border border-slate-200 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead>Cooperado</TableHead>
+                    <TableHead>Referência</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Valor Total</TableHead>
+                    <TableHead>Valor Pago</TableHead>
+                    <TableHead>Dias Atraso</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                        Carregando...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredFaturas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                        Nenhuma fatura encontrada
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredFaturas.map((fatura) => {
+                      const cooperado = getCooperado(fatura.cooperado_id);
+                      const StatusIcon = statusIcons[fatura.status] || Clock;
+                      
+                      return (
+                        <TableRow key={fatura.id} className="hover:bg-slate-50">
+                          <TableCell className="font-medium">
+                            {cooperado?.nome_completo || 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {fatura.mes_referencia?.toString().padStart(2, '0')}/{fatura.ano_referencia}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {fatura.data_vencimento ? format(new Date(fatura.data_vencimento), 'dd/MM/yyyy') : 'N/A'}
+                          </TableCell>
+                          <TableCell className="font-semibold">
+                            R$ {fatura.valor_total?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell className="text-emerald-600 font-medium">
+                            R$ {(fatura.valor_pago || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </TableCell>
+                          <TableCell>
+                            {fatura.dias_atraso > 0 ? (
+                              <Badge variant="destructive">{fatura.dias_atraso} dias</Badge>
+                            ) : (
+                              <span className="text-slate-500">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className={`${statusColors[fatura.status]} border gap-1`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {fatura.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => visualizarFatura(fatura)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={detalhesOpen} onOpenChange={setDetalhesOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Fatura</DialogTitle>
+          </DialogHeader>
+          {selectedFatura && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-slate-500">Cooperado</p>
+                  <p className="font-semibold">{getCooperado(selectedFatura.cooperado_id)?.nome_completo}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Referência</p>
+                  <p className="font-semibold">
+                    {selectedFatura.mes_referencia?.toString().padStart(2, '0')}/{selectedFatura.ano_referencia}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Data Fechamento</p>
+                  <p className="font-semibold">
+                    {selectedFatura.data_fechamento ? format(new Date(selectedFatura.data_fechamento), 'dd/MM/yyyy') : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Data Vencimento</p>
+                  <p className="font-semibold">
+                    {selectedFatura.data_vencimento ? format(new Date(selectedFatura.data_vencimento), 'dd/MM/yyyy') : 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-4">Valores</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Saldo Anterior</span>
+                    <span className="font-medium">R$ {(selectedFatura.saldo_anterior || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Total em Compras</span>
+                    <span className="font-medium">R$ {(selectedFatura.total_compras || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Total em Saques</span>
+                    <span className="font-medium">R$ {(selectedFatura.total_saques || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Juros</span>
+                    <span className="font-medium text-red-600">R$ {(selectedFatura.juros || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">IOF</span>
+                    <span className="font-medium">R$ {(selectedFatura.iof || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Anuidade</span>
+                    <span className="font-medium">R$ {(selectedFatura.anuidade || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 text-lg">
+                    <span className="font-semibold">Valor Total</span>
+                    <span className="font-bold text-[#4A9B8E]">
+                      R$ {(selectedFatura.valor_total || 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Valor Mínimo</span>
+                    <span className="font-medium">R$ {(selectedFatura.valor_minimo || 0).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedFatura.linha_digitavel && (
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-2">Linha Digitável</h3>
+                  <p className="font-mono text-sm bg-slate-50 p-3 rounded">
+                    {selectedFatura.linha_digitavel}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

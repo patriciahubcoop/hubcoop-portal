@@ -1,0 +1,53 @@
+{
+  "name": "UsuarioSistema",
+  "type": "object",
+  "properties": {
+    "nome_completo": {
+      "type": "string"
+    },
+    "cpf": {
+      "type": "string"
+    },
+    "email_corporativo": {
+      "type": "string"
+    },
+    "cooperativa_id": {
+      "type": "string",
+      "description": "ID da cooperativa vinculada"
+    },
+    "grupo_atendimento": {
+      "type": "string",
+      "description": "Grupo de atendimento"
+    },
+    "perfil": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "gerente",
+        "atendente",
+        "consulta"
+      ],
+      "default": "atendente"
+    },
+    "permissoes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lista de permiss\u00f5es espec\u00edficas"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    },
+    "ultimo_acesso": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "nome_completo",
+    "cpf",
+    "email_corporativo"
+  ]
+}

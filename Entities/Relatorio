@@ -1,0 +1,73 @@
+{
+  "name": "Relatorio",
+  "type": "object",
+  "properties": {
+    "tipo_relatorio": {
+      "type": "string",
+      "enum": [
+        "cartoes_atraso",
+        "cadastral_cartoes",
+        "cessao_credito",
+        "pagamentos",
+        "faturas_pagas",
+        "parcelamentos",
+        "parcelamentos_rotativos",
+        "anuidades",
+        "resgates_pontos",
+        "transacoes",
+        "ajustes_central",
+        "cartoes_bloqueados",
+        "cadoc_3040",
+        "receitas_despesas",
+        "limites_gerencial",
+        "irpj"
+      ],
+      "description": "Tipo de relat\u00f3rio"
+    },
+    "periodo_inicio": {
+      "type": "string",
+      "format": "date"
+    },
+    "periodo_fim": {
+      "type": "string",
+      "format": "date"
+    },
+    "cooperativa_id": {
+      "type": "string",
+      "description": "Filtro por cooperativa"
+    },
+    "formato": {
+      "type": "string",
+      "enum": [
+        "csv",
+        "xls",
+        "pdf"
+      ],
+      "default": "csv"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "processando",
+        "concluido",
+        "erro"
+      ],
+      "default": "processando"
+    },
+    "arquivo_url": {
+      "type": "string",
+      "description": "URL do arquivo gerado"
+    },
+    "total_registros": {
+      "type": "integer",
+      "description": "Total de registros no relat\u00f3rio"
+    },
+    "parametros": {
+      "type": "object",
+      "description": "Par\u00e2metros adicionais do relat\u00f3rio"
+    }
+  },
+  "required": [
+    "tipo_relatorio"
+  ]
+}

@@ -1,0 +1,167 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+
+export default function UsuarioForm({ usuario, cooperativas, onSubmit, onCancel }) {
+  const [formData, setFormData] = useState(usuario || {
+    nome_completo: '',
+    cpf: '',
+    email_corporativo: '',
+    cooperativa_id: '',
+    grupo_atendimento: '',
+    perfil: 'atendente',
+    permissoes: [],
+    ativo: true
+  });
+
+  const permissoesDisponiveis = [
+    { id: 'visualizar_cooperados', label: 'Visualizar Cooperados' },
+    { id: 'editar_cooperados', label: 'Editar Cooperados' },
+    { id: 'visualizar_cartoes', label: 'Visualizar Cartões' },
+    { id: 'editar_cartoes', label: 'Editar Cartões' },
+    { id: 'visualizar_faturas', label: 'Visualizar Faturas' },
+    { id: 'editar_faturas', label: 'Editar Faturas' },
+    { id: 'visualizar_transacoes', label: 'Visualizar Transações' },
+    { id: 'gerar_relatorios', label: 'Gerar Relatórios' },
+    { id: 'configuracoes_sistema', label: 'Configurações do Sistema' }
+  ];
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePermissaoChange = (permissaoId, checked) => {
+    setFormData(prev => ({
+      ...prev,
+      permissoes: checked 
+        ? [...(prev.permissoes || []), permissaoId]
+        : (prev.permissoes || []).filter(p => p !== permissaoId)
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2 md:col-span-2">
+          <Label htmlFor="nome_completo">Nome Completo *</Label>
+          <Input
+            id="nome_completo"
+            value={formData.nome_completo}
+            onChange={(e) => handleChange('nome_completo', e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cpf">CPF *</Label>
+          <Input
+            id="cpf"
+            value={formData.cpf}
+            onChange={(e) => handleChange('cpf', e.target.value)}
+            placeholder="000.000.000-00"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email_corporativo">E-mail Corporativo *</Label>
+          <Input
+            id="email_corporativo"
+            type="email"
+            value={formData.email_corporativo}
+            onChange={(e) => handleChange('email_corporativo', e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cooperativa_id">Cooperativa</Label>
+          <Select value={formData.cooperativa_id} onValueChange={(value) => handleChange('cooperativa_id', value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={null}>Todas</SelectItem>
+              {cooperativas.map(coop => (
+                <SelectItem key={coop.id} value={coop.id}>{coop.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="grupo_atendimento">Grupo de Atendimento</Label>
+          <Input
+            id="grupo_atendimento"
+            value={formData.grupo_atendimento}
+            onChange={(e) => handleChange('grupo_atendimento', e.target.value)}
+            placeholder="Ex: Atendimento Geral"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="perfil">Perfil *</Label>
+          <Select value={formData.perfil} onValueChange={(value) => handleChange('perfil', value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="gerente">Gerente</SelectItem>
+              <SelectItem value="atendente">Atendente</SelectItem>
+              <SelectItem value="consulta">Consulta</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ativo">Status</Label>
+          <Select value={formData.ativo ? 'true' : 'false'} onValueChange={(value) => handleChange('ativo', value === 'true')}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="true">Ativo</SelectItem>
+              <SelectItem value="false">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="border-t pt-4">
+        <h3 className="font-semibold mb-4">Permissões</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {permissoesDisponiveis.map((permissao) => (
+            <div key={permissao.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={permissao.id}
+                checked={(formData.permissoes || []).includes(permissao.id)}
+                onCheckedChange={(checked) => handlePermissaoChange(permissao.id, checked)}
+              />
+              <Label htmlFor={permissao.id} className="text-sm font-normal cursor-pointer">
+                {permissao.label}
+              </Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-3 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit" className="bg-[#4A9B8E] hover:bg-[#3A7B6E]">
+          {usuario ? 'Atualizar' : 'Cadastrar'}
+        </Button>
+      </div>
+    </form>
+  );
+}

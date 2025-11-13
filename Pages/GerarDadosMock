@@ -1,0 +1,255 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
+export default function GerarDadosMock() {
+  const [loading, setLoading] = useState(false);
+  const [resultado, setResultado] = useState(null);
+
+  const gerarDados = async () => {
+    setLoading(true);
+    setResultado(null);
+
+    try {
+      // Buscar cooperados e cooperativas existentes
+      const cooperados = await base44.entities.Cooperado.list();
+      const cooperativas = await base44.entities.Cooperativa.list();
+
+      if (cooperados.length === 0) {
+        toast.error('Nenhum cooperado encontrado. Crie cooperados primeiro.');
+        setLoading(false);
+        return;
+      }
+
+      // Vincular cooperados às cooperativas
+      for (let i = 0; i < cooperados.length; i++) {
+        const cooperativa = cooperativas[i % cooperativas.length];
+        if (cooperativa && !cooperados[i].cooperativa_id) {
+          await base44.entities.Cooperado.update(cooperados[i].id, {
+            ...cooperados[i],
+            cooperativa_id: cooperativa.id
+          });
+        }
+      }
+
+      // Atualizar lista após vincular
+      const cooperadosAtualizados = await base44.entities.Cooperado.list();
+
+      // Criar cartões para cada cooperado
+      const cartoesData = [
+        { tipo_cartao: 'gold', bandeira: 'visa', limite: 15000, estado: 'ativo' },
+        { tipo_cartao: 'platinum', bandeira: 'mastercard', limite: 25000, estado: 'ativo' },
+        { tipo_cartao: 'classic', bandeira: 'visa', limite: 8000, estado: 'ativo' },
+        { tipo_cartao: 'infinite', bandeira: 'visa', limite: 50000, estado: 'ativo' },
+        { tipo_cartao: 'gold', bandeira: 'mastercard', limite: 12000, estado: 'bloqueado_preventivo' },
+        { tipo_cartao: 'classic', bandeira: 'visa', limite: 6000, estado: 'vencido' }
+      ];
+
+      const cartoesMap = [];
+      for (let i = 0; i < Math.min(cooperadosAtualizados.length, cartoesData.length); i++) {
+        const cooperado = cooperadosAtualizados[i];
+        const cartaoData = cartoesData[i];
+        
+        const cartao = await base44.entities.Cartao.create({
+          numero_cartao: `**** **** **** ${String(1234 + i).padStart(4, '0')}`,
+          conta_cartao: `CC-00${i + 1}-${String(123456 + i * 1000).padStart(6, '0')}`,
+          cooperado_id: cooperado.id,
+          cooperativa_id: cooperado.cooperativa_id,
+          tipo_cartao: cartaoData.tipo_cartao,
+          bandeira: cartaoData.bandeira,
+          tipo_titular: 'titular',
+          data_validade: new Date(new Date().setFullYear(new Date().getFullYear() + (3 + i))).toISOString().split('T')[0],
+          data_ativacao: new Date(2024, i, 15).toISOString().split('T')[0],
+          data_primeira_compra: new Date(2024, i, 20).toISOString().split('T')[0],
+          data_ultima_compra: new Date(2025, 10, 10 + i).toISOString().split('T')[0],
+          limite_credito_implantado: cartaoData.limite,
+          limite_credito_utilizado: cartaoData.limite * (0.3 + i * 0.1),
+          limite_diario_debito: cartaoData.limite * 0.2,
+          limite_diario_credito: cartaoData.limite * 0.4,
+          limite_diario_saque: 1000 + i * 500,
+          estado_cartao: cartaoData.estado,
+          estado_conta: 'ativa',
+          debito_automatico: i % 2 === 0,
+          conta_debito_automatico: cooperado.conta_corrente,
+          dia_vencimento: [5, 10, 15, 20, 25][i % 5],
+          tipo_fatura: i % 2 === 0 ? 'online' : 'impressa',
+          valor_proxima_fatura: 1500 + i * 500,
+          divida_consolidada: cartaoData.estado === 'vencido' ? 1580 : 0,
+          status_rastreamento: cartaoData.estado === 'vencido' ? 'Novo cartão em produção' : 'Entregue',
+          bloqueio_online: cartaoData.estado === 'bloqueado_preventivo',
+          bloqueio_presencial: cartaoData.estado === 'bloqueado_preventivo',
+          bloqueio_aproximacao: false,
+          bloqueio_saque: false,
+          bloqueio_internacional: i % 3 === 0,
+          saldo_pontos: 5000 + i * 5000
+        });
+
+        cartoesMap.push({ cartao, cooperado });
+      }
+
+      // Criar transações para cada cartão
+      const tiposTransacao = ['compra', 'saque', 'compra', 'compra', 'pagamento'];
+      const estabelecimentos = [
+        'Supermercado Extra', 'Padaria Pão Quente', 'Magazine Luiza',
+        'Farmácia São Paulo', 'Americanas.com', 'iFood', 'Posto Ipiranga',
+        'Lojas Renner', 'Uber', 'Netflix'
+      ];
+
+      for (const { cartao, cooperado } of cartoesMap) {
+        for (let j = 0; j < 5; j++) {
+          const dias = j * 2;
+          const data = new Date(2025, 10, 13 - dias);
+          
+          await base44.entities.Transacao.create({
+            cartao_id: cartao.id,
+            cooperado_id: cooperado.id,
+            data_hora: data.toISOString(),
+            tipo_transacao: tiposTransacao[j % tiposTransacao.length],
+            tipo_pagamento: tiposTransacao[j] === 'pagamento' ? 'credito' : (j % 2 === 0 ? 'credito' : 'debito'),
+            forma_pagamento: ['chip', 'aproximacao', 'online', 'magnetico'][j % 4],
+            valor: 50 + j * 100 + Math.random() * 200,
+            parcelas: j === 2 ? 3 : 1,
+            parcela_atual: j === 2 ? 1 : null,
+            descricao: estabelecimentos[j % estabelecimentos.length],
+            estabelecimento: estabelecimentos[j % estabelecimentos.length],
+            categoria_mcc: ['5411', '5812', '5732', '5912'][j % 4],
+            cidade: cooperado.cidade || 'São Paulo',
+            pais: 'Brasil',
+            status: j === 4 ? 'negada_limite' : 'aprovada',
+            codigo_autorizacao: j === 4 ? null : `AUT${String(123456 + j).padStart(6, '0')}`,
+            nsu: `${String(123456789 + j).padStart(12, '0')}`,
+            incluir_proxima_fatura: tiposTransacao[j] !== 'pagamento'
+          });
+        }
+      }
+
+      // Criar faturas
+      for (const { cartao, cooperado } of cartoesMap) {
+        const statusFatura = ['aberta', 'paga', 'fechada', 'vencida', 'paga_parcial'][cartoesMap.indexOf({ cartao, cooperado }) % 5];
+        const totalCompras = 1500 + cartoesMap.indexOf({ cartao, cooperado }) * 500;
+        
+        await base44.entities.Fatura.create({
+          cartao_id: cartao.id,
+          cooperado_id: cooperado.id,
+          mes_referencia: 11,
+          ano_referencia: 2025,
+          data_fechamento: '2025-11-10',
+          data_vencimento: '2025-11-25',
+          valor_total: totalCompras + 150,
+          valor_minimo: (totalCompras + 150) * 0.1,
+          valor_pago: statusFatura === 'paga' ? totalCompras + 150 : (statusFatura === 'paga_parcial' ? (totalCompras + 150) * 0.1 : 0),
+          saldo_anterior: 0,
+          total_compras: totalCompras,
+          total_saques: 100,
+          juros: 0,
+          multa: 0,
+          iof: 12.5,
+          tarifa_sms: 8,
+          tarifa_seguro: 15,
+          anuidade: 15,
+          outras_tarifas: 0,
+          dias_atraso: statusFatura === 'vencida' ? 70 : 0,
+          status: statusFatura,
+          linha_digitavel: `23793.38128 60000.${String(123456 + cartoesMap.indexOf({ cartao, cooperado })).padStart(6, '0')} 78901.234567 1 ${String(99990000000000 + totalCompras * 100).slice(0, 14)}`
+        });
+      }
+
+      // Criar relatórios
+      const tiposRelatorio = ['cartoes_atraso', 'cadastral_cartoes', 'transacoes', 'faturas_pagas', 'limites_gerencial'];
+      for (let i = 0; i < 5; i++) {
+        await base44.entities.Relatorio.create({
+          tipo_relatorio: tiposRelatorio[i],
+          periodo_inicio: '2025-10-01',
+          periodo_fim: '2025-11-01',
+          cooperativa_id: cooperativas[i % cooperativas.length]?.id || null,
+          formato: ['csv', 'xls', 'pdf'][i % 3],
+          status: ['concluido', 'concluido', 'processando', 'concluido', 'erro'][i],
+          arquivo_url: i < 4 ? 'https://example.com/relatorio.csv' : null,
+          total_registros: 100 + i * 50
+        });
+      }
+
+      setResultado({
+        sucesso: true,
+        mensagem: `Dados criados com sucesso! ${cartoesMap.length} cartões, ${cartoesMap.length * 5} transações, ${cartoesMap.length} faturas e 5 relatórios.`
+      });
+
+      toast.success('Dados mockados criados com sucesso!');
+
+    } catch (error) {
+      console.error('Erro ao gerar dados:', error);
+      setResultado({
+        sucesso: false,
+        mensagem: `Erro: ${error.message}`
+      });
+      toast.error('Erro ao gerar dados mockados');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <Card className="border-t-4 border-t-[#4A9B8E]">
+        <CardHeader>
+          <CardTitle>Gerar Dados Mockados</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-slate-600">
+            Este script irá criar dados mockados para:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-slate-600">
+            <li>Cartões vinculados aos cooperados</li>
+            <li>Transações para cada cartão</li>
+            <li>Faturas para cada cartão</li>
+            <li>Relatórios de exemplo</li>
+          </ul>
+
+          <Button
+            onClick={gerarDados}
+            disabled={loading}
+            className="w-full bg-[#4A9B8E] hover:bg-[#3A7B6E]"
+            size="lg"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Gerando dados...
+              </>
+            ) : (
+              'Gerar Dados Mockados'
+            )}
+          </Button>
+
+          {resultado && (
+            <div className={`p-4 rounded-lg ${resultado.sucesso ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+              <div className="flex items-start gap-3">
+                {resultado.sucesso ? (
+                  <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                )}
+                <div>
+                  <p className={`font-semibold ${resultado.sucesso ? 'text-emerald-900' : 'text-red-900'}`}>
+                    {resultado.sucesso ? 'Sucesso!' : 'Erro'}
+                  </p>
+                  <p className={`text-sm ${resultado.sucesso ? 'text-emerald-700' : 'text-red-700'}`}>
+                    {resultado.mensagem}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="text-sm text-slate-500 bg-slate-50 p-4 rounded-lg">
+            <p className="font-semibold mb-2">Nota:</p>
+            <p>Certifique-se de ter cooperados e cooperativas cadastrados antes de executar este script.</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

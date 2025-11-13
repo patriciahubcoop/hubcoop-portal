@@ -1,0 +1,125 @@
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Building2, Mail, Phone, MapPin, DollarSign, CreditCard } from 'lucide-react';
+
+export default function CooperativaDetalhes({ cooperativa }) {
+  const InfoRow = ({ label, value, icon: Icon }) => (
+    <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
+      {Icon && <Icon className="w-5 h-5 text-slate-400 mt-0.5" />}
+      <div className="flex-1">
+        <p className="text-sm text-slate-500">{label}</p>
+        <p className="font-medium text-slate-800 mt-0.5">{value || 'Não informado'}</p>
+      </div>
+    </div>
+  );
+
+  const percentualUtilizacao = cooperativa.limite_outorgado > 0
+    ? ((cooperativa.limite_utilizado / cooperativa.limite_outorgado) * 100).toFixed(1)
+    : 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 pb-4 border-b">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#4A9B8E] to-[#3A7B6E] flex items-center justify-center text-white text-2xl font-bold">
+          {cooperativa.codigo}
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">{cooperativa.nome}</h2>
+          <p className="text-slate-500">CNPJ: {cooperativa.cnpj}</p>
+        </div>
+        <Badge className="ml-auto" variant={cooperativa.ativo ? 'default' : 'secondary'}>
+          {cooperativa.ativo ? 'Ativa' : 'Inativa'}
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Dados Gerais
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InfoRow label="Código" value={cooperativa.codigo} />
+            <InfoRow label="Nome" value={cooperativa.nome} />
+            <InfoRow label="CNPJ" value={cooperativa.cnpj} />
+            <InfoRow label="Tipo" value={cooperativa.tipo} />
+            <InfoRow label="Envio de Cartão" value={cooperativa.envio_cartao === 'cooperativa' ? 'Para Cooperativa' : 'Direto ao Cooperado'} />
+            <InfoRow label="Conta Cartão" value={cooperativa.conta_cartao} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <DollarSign className="w-5 h-5" />
+              Limites
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-slate-500">Limite Outorgado</span>
+                  <span className="font-semibold text-slate-800">
+                    R$ {(cooperativa.limite_outorgado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-sm text-slate-500">Limite Utilizado</span>
+                  <span className="font-semibold text-orange-600">
+                    R$ {(cooperativa.limite_utilizado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-3">
+                  <span className="text-sm text-slate-500">Limite Disponível</span>
+                  <span className="font-semibold text-emerald-600">
+                    R$ {((cooperativa.limite_outorgado || 0) - (cooperativa.limite_utilizado || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${percentualUtilizacao > 80 ? 'bg-red-500' : percentualUtilizacao > 60 ? 'bg-orange-500' : 'bg-emerald-500'}`}
+                    style={{ width: `${Math.min(percentualUtilizacao, 100)}%` }}
+                  />
+                </div>
+                <div className="text-center mt-2">
+                  <span className="text-sm font-medium text-slate-600">{percentualUtilizacao}% Utilizado</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="w-5 h-5" />
+              Endereço
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InfoRow label="Endereço" value={cooperativa.endereco} />
+            <InfoRow label="Cidade" value={cooperativa.cidade} />
+            <InfoRow label="Estado" value={cooperativa.estado} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Phone className="w-5 h-5" />
+              Contato
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InfoRow label="Telefone" value={cooperativa.telefone} icon={Phone} />
+            <InfoRow label="E-mail" value={cooperativa.email} icon={Mail} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,239 @@
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '../utils';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Plus, Eye, CreditCard as CreditCardIcon, Shield, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+export default function Cartoes() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const { data: cartoes = [], isLoading } = useQuery({
+    queryKey: ['cartoes'],
+    queryFn: () => base44.entities.Cartao.list('-created_date')
+  });
+
+  const { data: cooperados = [] } = useQuery({
+    queryKey: ['cooperados'],
+    queryFn: () => base44.entities.Cooperado.list()
+  });
+
+  const getCooperado = (id) => cooperados.find(c => c.id === id);
+
+  const filteredCartoes = cartoes.filter(c => {
+    const cooperado = getCooperado(c.cooperado_id);
+    const matchesSearch = 
+      cooperado?.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.numero_cartao?.includes(searchTerm) ||
+      c.conta_cartao?.includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || c.estado_cartao === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const statusColors = {
+    ativo: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+    bloqueado_preventivo: 'bg-yellow-100 text-yellow-700 border-yellow-200',
+    bloqueado_perda: 'bg-orange-100 text-orange-700 border-orange-200',
+    bloqueado_roubo: 'bg-red-100 text-red-700 border-red-200',
+    vencido: 'bg-slate-100 text-slate-700 border-slate-200',
+    cancelado: 'bg-slate-100 text-slate-700 border-slate-200',
+    fraude: 'bg-red-100 text-red-700 border-red-200',
+    anulado: 'bg-slate-100 text-slate-700 border-slate-200'
+  };
+
+  const tipoCartaoColors = {
+    classic: 'bg-blue-100 text-blue-700',
+    gold: 'bg-amber-100 text-amber-700',
+    platinum: 'bg-slate-200 text-slate-700',
+    infinite: 'bg-purple-100 text-purple-700',
+    electron: 'bg-cyan-100 text-cyan-700',
+    universitario: 'bg-indigo-100 text-indigo-700',
+    kids: 'bg-pink-100 text-pink-700',
+    salario: 'bg-green-100 text-green-700'
+  };
+
+  const cartoesAtivos = cartoes.filter(c => c.estado_cartao === 'ativo').length;
+  const cartoesBloqueados = cartoes.filter(c => c.estado_cartao?.includes('bloqueado')).length;
+  const cartoesVencidos = cartoes.filter(c => c.estado_cartao === 'vencido').length;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-t-4 border-t-emerald-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Cartões Ativos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{cartoesAtivos}</span>
+              <div className="p-3 rounded-xl bg-emerald-50">
+                <CreditCardIcon className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-orange-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Cartões Bloqueados</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{cartoesBloqueados}</span>
+              <div className="p-3 rounded-xl bg-orange-50">
+                <Shield className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-slate-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Cartões Vencidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{cartoesVencidos}</span>
+              <div className="p-3 rounded-xl bg-slate-50">
+                <AlertTriangle className="w-6 h-6 text-slate-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-t-4 border-t-[#4A9B8E]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Gestão de Cartões</CardTitle>
+              <p className="text-sm text-slate-500 mt-1">Consulta e gerenciamento de cartões</p>
+            </div>
+            <Link to={createPageUrl('SolicitacaoCartao')}>
+              <Button className="bg-[#4A9B8E] hover:bg-[#3A7B6E]">
+                <Plus className="w-4 h-4 mr-2" />
+                Solicitar Cartão
+              </Button>
+            </Link>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+                <Input
+                  placeholder="Buscar por cooperado, número do cartão ou conta..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            <Tabs defaultValue="all" onValueChange={setStatusFilter}>
+              <TabsList>
+                <TabsTrigger value="all">Todos</TabsTrigger>
+                <TabsTrigger value="ativo">Ativos</TabsTrigger>
+                <TabsTrigger value="bloqueado_preventivo">Bloqueados</TabsTrigger>
+                <TabsTrigger value="vencido">Vencidos</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value={statusFilter} className="mt-4">
+                <div className="rounded-lg border border-slate-200 overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50">
+                        <TableHead>Cooperado</TableHead>
+                        <TableHead>Conta Cartão</TableHead>
+                        <TableHead>Tipo</TableHead>
+                        <TableHead>Bandeira</TableHead>
+                        <TableHead>Limite</TableHead>
+                        <TableHead>Validade</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                            Carregando...
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredCartoes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                            Nenhum cartão encontrado
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredCartoes.map((cartao) => {
+                          const cooperado = getCooperado(cartao.cooperado_id);
+                          const limiteDisponivel = (cartao.limite_credito_implantado || 0) - (cartao.limite_credito_utilizado || 0);
+                          
+                          return (
+                            <TableRow key={cartao.id} className="hover:bg-slate-50">
+                              <TableCell className="font-medium">
+                                {cooperado?.nome_completo || 'N/A'}
+                              </TableCell>
+                              <TableCell className="font-mono text-sm">
+                                {cartao.conta_cartao}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={tipoCartaoColors[cartao.tipo_cartao]}>
+                                  {cartao.tipo_cartao}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="uppercase text-sm">
+                                {cartao.bandeira}
+                              </TableCell>
+                              <TableCell>
+                                <div className="text-sm">
+                                  <div className="font-medium">
+                                    R$ {limiteDisponivel.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </div>
+                                  <div className="text-slate-500 text-xs">
+                                    de R$ {(cartao.limite_credito_implantado || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm">
+                                {cartao.data_validade ? new Date(cartao.data_validade).toLocaleDateString('pt-BR') : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`${statusColors[cartao.estado_cartao || 'ativo']} border`}>
+                                  {cartao.estado_cartao || 'ativo'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Link to={createPageUrl(`DetalhesCartao?id=${cartao.id}`)}>
+                                  <Button variant="ghost" size="sm">
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </Link>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

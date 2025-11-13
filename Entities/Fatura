@@ -1,0 +1,118 @@
+{
+  "name": "Fatura",
+  "type": "object",
+  "properties": {
+    "cartao_id": {
+      "type": "string",
+      "description": "ID do cart\u00e3o"
+    },
+    "cooperado_id": {
+      "type": "string",
+      "description": "ID do cooperado"
+    },
+    "mes_referencia": {
+      "type": "integer",
+      "description": "M\u00eas de refer\u00eancia (1-12)"
+    },
+    "ano_referencia": {
+      "type": "integer",
+      "description": "Ano de refer\u00eancia"
+    },
+    "data_fechamento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de fechamento da fatura"
+    },
+    "data_vencimento": {
+      "type": "string",
+      "format": "date",
+      "description": "Data de vencimento"
+    },
+    "valor_total": {
+      "type": "number",
+      "description": "Valor total da fatura"
+    },
+    "valor_minimo": {
+      "type": "number",
+      "description": "Valor m\u00ednimo para pagamento"
+    },
+    "valor_pago": {
+      "type": "number",
+      "description": "Valor j\u00e1 pago"
+    },
+    "saldo_anterior": {
+      "type": "number",
+      "description": "Saldo da fatura anterior"
+    },
+    "total_compras": {
+      "type": "number",
+      "description": "Total em compras"
+    },
+    "total_saques": {
+      "type": "number",
+      "description": "Total em saques"
+    },
+    "juros": {
+      "type": "number",
+      "description": "Juros cobrados"
+    },
+    "multa": {
+      "type": "number",
+      "description": "Multa por atraso"
+    },
+    "iof": {
+      "type": "number",
+      "description": "IOF cobrado"
+    },
+    "tarifa_sms": {
+      "type": "number",
+      "description": "Tarifa de SMS"
+    },
+    "tarifa_seguro": {
+      "type": "number",
+      "description": "Tarifa de seguro"
+    },
+    "anuidade": {
+      "type": "number",
+      "description": "Anuidade cobrada"
+    },
+    "outras_tarifas": {
+      "type": "number",
+      "description": "Outras tarifas"
+    },
+    "dias_atraso": {
+      "type": "integer",
+      "description": "Dias em atraso"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "aberta",
+        "fechada",
+        "paga",
+        "paga_parcial",
+        "vencida",
+        "parcelada",
+        "cessao_credito"
+      ],
+      "default": "aberta"
+    },
+    "codigo_barras": {
+      "type": "string",
+      "description": "C\u00f3digo de barras do boleto"
+    },
+    "linha_digitavel": {
+      "type": "string",
+      "description": "Linha digit\u00e1vel do boleto"
+    },
+    "arquivo_pdf_url": {
+      "type": "string",
+      "description": "URL do PDF da fatura"
+    }
+  },
+  "required": [
+    "cartao_id",
+    "mes_referencia",
+    "ano_referencia"
+  ]
+}
