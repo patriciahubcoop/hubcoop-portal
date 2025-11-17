@@ -83,17 +83,66 @@ import {
 const HUB_BRAND_COLOR = '#3E807D';
 
 // =======================================================================
-// DADOS GLOBAIS DO USUÁRIO E CENTRAIS (NOVO)
+// DADOS GLOBAIS DO SISTEMA (USUÁRIOS MOCK, CENTRAIS, COOPERATIVAS, PONTOS)
+ // =======================================================================
 // =======================================================================
-// O seu usuário agora é Administrador (c1) para poder aceder a Configurações
-const USUARIO_LOGADO = {
-  nome: "Patricia Ramos Holanda",
-  email: "patricia.holanda@credissis.com.br",
-  centralId: "c1", // c1 = Matriz/Hubcoop (Admin)
-  perfil: "Administrador" // <-- O usuário é Admin
+// DADOS GLOBAIS DO USUÁRIO E CENTRAIS (Refatorado para Multi-Login)
+// =======================================================================
+
+// 1. Novo Tipo de Usuário
+type UserProfile = 'Master' | 'Central' | 'Cooperativa' | 'PA';
+
+type User = {
+  id: string;
+  nome: string;
+  email: string;
+  perfil: UserProfile;
+  centralId: string | null; // ex: 'c2' (Credisis)
+  cooperativaId: string | null; // ex: 'coop_coopesa'
+  pontoAtendimentoId: string | null; // ex: 'pa_03'
 };
 
-// --- Definição de Tipos para Cooperativas ---
+// 2. Nosso "Banco de Dados" de usuários para simular o login
+const mockUsuariosLogin: Record<string, User> = {
+  'hubcoop': {
+    id: 'user1',
+    nome: 'Admin Hubcoop',
+    email: 'patricia.holanda@hubcoop.com.br',
+    perfil: 'Master',
+    centralId: 'c1', // c1 = Matriz/Hubcoop (Admin)
+    cooperativaId: null,
+    pontoAtendimentoId: null,
+  },
+  'credisis': {
+    id: 'user2',
+    nome: 'Patricia Holanda (Credisis)',
+    email: 'patricia.holanda@credisis.com.br',
+    perfil: 'Central',
+    centralId: 'c2', // Apenas da Credisis
+    cooperativaId: null,
+    pontoAtendimentoId: null,
+  },
+  'coopesa': {
+    id: 'user3',
+    nome: 'Gestor Coopesa',
+    email: 'patricia.holanda@cooperativacoopesa.com.br',
+    perfil: 'Cooperativa',
+    centralId: 'c2',
+    cooperativaId: 'coop_coopesa', // ID da Coopesa
+    pontoAtendimentoId: null,
+  },
+  'pa03': {
+    id: 'user4',
+    nome: 'Atendente PA 03',
+    email: 'patricia.holanda@pa03.com.br',
+    perfil: 'PA',
+    centralId: 'c2',
+    cooperativaId: 'coop_coopesa',
+    pontoAtendimentoId: 'pa_03', // ID do PA 03
+  },
+};
+
+// --- Definição de Tipos para Cooperativas e Centrais ---
 type Central = {
   id: string;
   nome: string;
@@ -122,47 +171,84 @@ type PontoAtendimento = {
 // Lista de TODAS as Centrais no sistema
 const mockCentrais: Central[] = [
   { id: 'c1', nome: 'Hubcoop (Matriz)', admin: 'hubcoop.admin@email.com', logo: 'https://placehold.co/40x40/333333/ffffff?text=H' },
-  { id: 'c2', nome: 'CREDISIS CENTRAL', admin: 'patricia.holanda@credissis.com.br', logo: 'https://i.imgur.com/v1bOn4O.png' }, // Logo Credisis
-  { id: 'c3', nome: 'UNIPRIME CENTRAL', admin: 'admin.uniprime@email.com', logo: 'https://i.imgur.com/E1s4sQy.png' }, // Logo Uniprime
+  { id: 'c2', nome: 'CREDISIS CENTRAL', admin: 'patricia.holanda@credisis.com.br', logo: 'https://i.imgur.com/v1bOn4O.png' },
+  // Observação:  removida conforme solicitado
 ];
 
 // Lista de TODAS as Cooperativas
 const mockCooperativas: Cooperativa[] = [
-  // Cooperativas da CREDISIS (c2)
-  { id: 'coop1', centralId: 'c2', codigo: '002', nome: 'Cooperativa Crédito Sul', cnpj: '23.456.789/0001-01', tipo: 'Singular', limiteOutorgado: 15000000, limiteUtilizado: 8500000, status: 'Ativa' },
-  { id: 'coop2', centralId: 'c2', codigo: '003', nome: 'Cooperativa Vale do Aço', cnpj: '34.567.890/0001-12', tipo: 'Singular', limiteOutorgado: 12000000, limiteUtilizado: 9200000, status: 'Ativa' },
-  { id: 'coop3', centralId: 'c2', codigo: '004', nome: 'Cooperativa Nordeste', cnpj: '45.678.901/0001-23', tipo: 'Singular', limiteOutorgado: 8000000, limiteUtilizado: 4200000, status: 'Ativa' },
-  // Cooperativa da UNIPRIME (c3)
-  { id: 'coop4', centralId: 'c3', codigo: '101', nome: 'Uniprime Norte PR', cnpj: '55.666.777/0001-44', tipo: 'Singular', limiteOutorgado: 30000000, limiteUtilizado: 10000000, status: 'Ativa' },
-  // As próprias Centrais (para o admin da c1 ver)
+  // A própria Central Credisis (para o Master ver)
   { id: 'c2_coop', centralId: 'c1', codigo: '001', nome: 'CREDISIS CENTRAL', cnpj: '12.345.678/0001-00', tipo: 'Central', limiteOutorgado: 50000000, limiteUtilizado: 35000000, status: 'Ativa' },
-  { id: 'c3_coop', centralId: 'c1', codigo: '100', nome: 'UNIPRIME CENTRAL', cnpj: '22.333.444/0001-11', tipo: 'Central', limiteOutorgado: 60000000, limiteUtilizado: 25000000, status: 'Ativa' },
+  // A Hubcoop não deve ver a Uniprime (removida)
+  // { id: 'c3_coop', centralId: 'c1', codigo: '100', nome: 'UNIPRIME CENTRAL', ... },
+
+  // Cooperativas da CREDISIS (c2)
+  { id: 'coop_crediserv', centralId: 'c2', codigo: '002', nome: 'Crediserv', cnpj: '11.111.111/0001-01', tipo: 'Singular', limiteOutorgado: 10000000, limiteUtilizado: 5000000, status: 'Ativa' },
+  { id: 'coop_primacredi', centralId: 'c2', codigo: '003', nome: 'Primacredi', cnpj: '22.222.222/0001-02', tipo: 'Singular', limiteOutorgado: 12000000, limiteUtilizado: 9200000, status: 'Ativa' },
+  { id: 'coop_coopesa', centralId: 'c2', codigo: '004', nome: 'Coopesa', cnpj: '33.333.333/0001-03', tipo: 'Singular', limiteOutorgado: 8000000, limiteUtilizado: 4200000, status: 'Ativa' },
+  { id: 'coop_credbem', centralId: 'c2', codigo: '005', nome: 'CredBem Metropolitana', cnpj: '44.444.444/0001-04', tipo: 'Singular', limiteOutorgado: 15000000, limiteUtilizado: 8500000, status: 'Ativa' },
+  { id: 'coop_uniindustria', centralId: 'c2', codigo: '006', nome: 'Uniindústria', cnpj: '55.555.555/0001-05', tipo: 'Singular', limiteOutorgado: 5000000, limiteUtilizado: 1000000, status: 'Ativa' },
+  { id: 'coop_credisul', centralId: 'c2', codigo: '007', nome: 'Credisul', cnpj: '66.666.666/0001-06', tipo: 'Singular', limiteOutorgado: 9000000, limiteUtilizado: 3000000, status: 'Ativa' },
+  { id: 'coop_cooperufpa', centralId: 'c2', codigo: '008', nome: 'Cooperufpa', cnpj: '77.777.777/0001-07', tipo: 'Singular', limiteOutorgado: 3000000, limiteUtilizado: 2500000, status: 'Ativa' },
+  { id: 'coop_credibras', centralId: 'c2', codigo: '009', nome: 'CrediBrás', cnpj: '88.888.888/0001-08', tipo: 'Singular', limiteOutorgado: 11000000, limiteUtilizado: 5000000, status: 'Ativa' },
+  { id: 'coop_oeste', centralId: 'c2', codigo: '010', nome: 'Oeste', cnpj: '99.999.999/0001-09', tipo: 'Singular', limiteOutorgado: 13000000, limiteUtilizado: 7000000, status: 'Ativa' },
+  { id: 'coop_crediari', centralId: 'c2', codigo: '011', nome: 'CrediAri', cnpj: '10.101.010/0001-10', tipo: 'Singular', limiteOutorgado: 14000000, limiteUtilizado: 8000000, status: 'Ativa' },
+  { id: 'coop_jicred', centralId: 'c2', codigo: '012', nome: 'JiCred', cnpj: '12.121.212/0001-12', tipo: 'Singular', limiteOutorgado: 7000000, limiteUtilizado: 4000000, status: 'Ativa' },
+  { id: 'coop_sudoeste', centralId: 'c2', codigo: '013', nome: 'Sudoeste', cnpj: '13.131.313/0001-13', tipo: 'Singular', limiteOutorgado: 6000000, limiteUtilizado: 3000000, status: 'Ativa' },
+  { id: 'coop_capitalcredi', centralId: 'c2', codigo: '014', nome: 'CapitalCredi', cnpj: '14.141.414/0001-14', tipo: 'Singular', limiteOutorgado: 18000000, limiteUtilizado: 9000000, status: 'Ativa' },
+  { id: 'coop_crediplan', centralId: 'c2', codigo: '015', nome: 'CrediPlan', cnpj: '15.151.515/0001-15', tipo: 'Singular', limiteOutorgado: 10000000, limiteUtilizado: 8000000, status: 'Ativa' },
 ];
 
-// Lista de TODOS os Pontos de Atendimento
+// Lista de TODOS os Pontos de Atendimento (ATUALIZADA)
 const mockPontosAtendimento: PontoAtendimento[] = [
-  { id: 'pa1', cooperativaId: 'coop1', codigo: '002-01', nome: 'PA Crédito Sul - Sede', status: 'Ativo' },
-  { id: 'pa2', cooperativaId: 'coop1', codigo: '002-02', nome: 'PA Crédito Sul - Centro', status: 'Ativo' },
-  { id: 'pa3', cooperativaId: 'coop2', codigo: '003-01', nome: 'PA Vale do Aço - Sede', status: 'Ativo' },
-  { id: 'pa4', cooperativaId: 'coop4', codigo: '101-01', nome: 'PA Uniprime - Maringá', status: 'Ativo' },
+  // PAs da Coopesa (para o login "pa03" e "coopesa" funcionarem)
+  { id: 'pa_03', cooperativaId: 'coop_coopesa', codigo: '004-03', nome: 'PA Coopesa 03', status: 'Ativo' },
+  { id: 'pa_04', cooperativaId: 'coop_coopesa', codigo: '004-04', nome: 'PA Coopesa 04', status: 'Ativo' },
+  
+  // PAs de outras cooperativas (para a Central "credisis" ver)
+  { id: 'pa_05', cooperativaId: 'coop_crediserv', codigo: '002-01', nome: 'PA Crediserv Sede', status: 'Ativo' },
+  { id: 'pa_06', cooperativaId: 'coop_primacredi', codigo: '003-01', nome: 'PA Primacredi Centro', status: 'Ativo' },
+  { id: 'pa_07', cooperativaId: 'coop_credbem', codigo: '005-01', nome: 'PA CredBem Metropolitana', status: 'Ativo' },
+  { id: 'pa_08', cooperativaId: 'coop_uniindustria', codigo: '006-01', nome: 'PA Uniindústria', status: 'Ativo' },
+  { id: 'pa_09', cooperativaId: 'coop_credisul', codigo: '007-01', nome: 'PA Credisul', status: 'Ativo' },
+  { id: 'pa_10', cooperativaId: 'coop_cooperufpa', codigo: '008-01', nome: 'PA Cooperufpa', status: 'Ativo' },
+  { id: 'pa_11', cooperativaId: 'coop_credibras', codigo: '009-01', nome: 'PA CrediBrás', status: 'Ativo' },
+  { id: 'pa_12', cooperativaId: 'coop_oeste', codigo: '010-01', nome: 'PA Oeste', status: 'Ativo' },
+  { id: 'pa_13', cooperativaId: 'coop_crediari', codigo: '011-01', nome: 'PA CrediAri', status: 'Ativo' },
+  { id: 'pa_14', cooperativaId: 'coop_jicred', codigo: '012-01', nome: 'PA JiCred', status: 'Ativo' },
+  { id: 'pa_15', cooperativaId: 'coop_sudoeste', codigo: '013-01', nome: 'PA Sudoeste', status: 'Ativo' },
+  { id: 'pa_16', cooperativaId: 'coop_capitalcredi', codigo: '014-01', nome: 'PA CapitalCredi', status: 'Ativo' },
+  { id: 'pa_17', cooperativaId: 'coop_crediplan', codigo: '015-01', nome: 'PA CrediPlan', status: 'Ativo' },
 ];
 
 // =======================================================================
-// 2. Componente Principal do Aplicativo
+// 2. Componente Principal do Aplicativo (Refatorado)
 // =======================================================================
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
-  }
-  return <DashboardLayout onLogout={() => setIsAuthenticated(false)} />;
-}
+  // O estado agora guarda o OBJETO do usuário, ou null
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+  };
+
+  if (!currentUser) {
+    // Passamos os usuários de simulação para a página de login
+    return <LoginPage onLogin={handleLogin} simulatedUsers={mockUsuariosLogin} />;
+  }
+
+  // Passamos o usuário logado como PROP para o Dashboard
+  return <DashboardLayout usuario={currentUser} onLogout={handleLogout} />;
+}
 // =======================================================================
-// 3. A Tela de Login (Sem alterações)
+// 3. A Tela de Login (Refatorada para Simulação)
 // =======================================================================
-function LoginPage({ onLogin }: { onLogin: () => void }) {
-  // O código da LoginPage continua o mesmo de antes
+function LoginPage({ onLogin, simulatedUsers }: { onLogin: (user: User) => void; simulatedUsers: Record<string, User> }) {
+  // Não precisamos mais do formulário, vamos usar botões para simular
   return (
     <div
       className="flex items-center justify-center min-h-screen"
@@ -170,86 +256,70 @@ function LoginPage({ onLogin }: { onLogin: () => void }) {
     >
       <div className="w-full max-w-md p-10 space-y-6 bg-white shadow-2xl rounded-2xl border border-gray-200">
         <div className="flex justify-center">
-          <h1
-            className="text-6xl font-bold"
-            style={{ color: HUB_BRAND_COLOR }}
-          >
+          <h1 className="text-6xl font-bold" style={{ color: HUB_BRAND_COLOR }}>
             Hubcoop
           </h1>
         </div>
         <h2 className="text-2xl font-semibold text-center text-gray-600">
-          Acesso ao Portal
+          Simular Acesso
         </h2>
         <div
           className="w-1/4 mx-auto"
           style={{ height: '3px', backgroundColor: HUB_BRAND_COLOR }}
         ></div>
-        <form
-          className="space-y-6 pt-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onLogin();
-          }}
-        >
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-700 pb-1"
-            >
-              E-mail (ID CrediSIS)
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              defaultValue="patricia.holanda@credissis.com.br"
-              className="w-full px-4 py-3 mt-1 text-gray-700 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-hub-teal-dark"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-700 pb-1"
-            >
-              Senha
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              defaultValue="secret"
-              className="w-full px-4 py-3 mt-1 text-gray-700 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-hub-teal-dark"
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full px-4 py-3 text-lg font-semibold text-white rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
-            style={{ backgroundColor: HUB_BRAND_COLOR }}
-            onMouseOver={(e) =>
-              (e.currentTarget.style.backgroundColor = '#2c5d5a')
-            }
-            onMouseOut={(e) =>
-              (e.currentTarget.style.backgroundColor = HUB_BRAND_COLOR)
-            }
-          >
-            Entrar
-          </button>
-        </form>
+        
+        {/* Botões de Simulação */}
+        <div className="space-y-4 pt-4">
+          <LoginButton
+            onClick={() => onLogin(simulatedUsers.hubcoop)}
+            perfil="Master (Hubcoop)"
+            email={simulatedUsers.hubcoop.email}
+          />
+          <LoginButton
+            onClick={() => onLogin(simulatedUsers.credisis)}
+            perfil="Central (Credisis)"
+            email={simulatedUsers.credisis.email}
+          />
+          <LoginButton
+            onClick={() => onLogin(simulatedUsers.coopesa)}
+            perfil="Cooperativa (Coopesa)"
+            email={simulatedUsers.coopesa.email}
+          />
+          <LoginButton
+            onClick={() => onLogin(simulatedUsers.pa03)}
+            perfil="Ponto de Atendimento (PA 03)"
+            email={simulatedUsers.pa03.email}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+// Componente auxiliar para os botões de login
+function LoginButton({ onClick, perfil, email }: { onClick: () => void; perfil: string; email: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full px-4 py-3 text-left text-white rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105"
+      style={{ backgroundColor: HUB_BRAND_COLOR }}
+      onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#2c5d5a')}
+      onMouseOut={(e) => (e.currentTarget.style.backgroundColor = HUB_BRAND_COLOR)}
+    >
+      <span className="font-semibold text-lg">{perfil}</span>
+      <span className="block text-sm opacity-90">{email}</span>
+    </button>
   );
 }
 
 // =======================================================================
 // 4. O Layout Principal do Dashboard (Pós-Login) - CORRIGIDO
 // =======================================================================
-function DashboardLayout({ onLogout }: { onLogout: () => void }) {
-  // O estado inicial agora é 'Dashboard'
-  const [activePage, setActivePage] = useState('Dashboard');
+function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario: User }) {
+  // O estado inicial agora é 'Dashboard' (ou 'Configurações' se for Master)
+  const [activePage, setActivePage] = useState(usuario.perfil === 'Master' ? 'Configuracoes' : 'Dashboard');
+  
   return (
     <div className="flex h-screen bg-gray-100">
       {/* 4.1. Menu Lateral (Sidebar) */}
@@ -260,58 +330,73 @@ function DashboardLayout({ onLogout }: { onLogout: () => void }) {
         <div className="flex items-center justify-center h-20 shadow-md">
           <h1 className="text-3xl font-bold">Hubcoop</h1>
         </div>
-        {/* 4.2. Menu Reorganizado */}
+        
+        {/* 4.2. Menu Reorganizado e Segregado */}
         <nav className="flex-1 p-4 space-y-2">
-          <SidebarLink
-            text="Dashboard"
-            icon={<Home size={20} />}
-            active={activePage === 'Dashboard'}
-            onClick={() => setActivePage('Dashboard')}
-          />
-          <SidebarLink
-            text="Cooperados"
-            icon={<Users2 size={20} />}
-            active={activePage === 'Cooperados'}
-            onClick={() => setActivePage('Cooperados')}
-          />
-          <SidebarLink
-            text="Cartões"
-            icon={<CreditCard size={20} />}
-            active={activePage === 'Cartoes'}
-            onClick={() => setActivePage('Cartoes')}
-          />
-          <SidebarLink
-            text="Transações"
-            icon={<DollarSign size={20} />}
-            active={activePage === 'Transacoes'}
-            onClick={() => setActivePage('Transacoes')}
-          />
-          <SidebarLink
-            text="Faturas"
-            icon={<FileText size={20} />}
-            active={activePage === 'Faturas'}
-            onClick={() => setActivePage('Faturas')}
-          />
-          <SidebarLink
-            text="Relatórios"
-            icon={<BarChart3 size={20} />}
-            active={activePage === 'Relatorios'}
-            onClick={() => setActivePage('Relatorios')}
-          />
-          <SidebarLink
-            text="Cooperativas"
-            icon={<Building size={20} />}
-            active={activePage === 'Cooperativas'}
-            onClick={() => setActivePage('Cooperativas')}
-          />
-          <SidebarLink
-            text="Usuários"
-            icon={<Users size={20} />}
-            active={activePage === 'Usuarios'}
-            onClick={() => setActivePage('Usuarios')}
-          />
-          {/* A Página de Configurações SÓ APARECE para Admins */}
-          {USUARIO_LOGADO.perfil === 'Administrador' && (
+          {/* Links visíveis para todos, exceto Master */}
+          {usuario.perfil !== 'Master' && (
+            <>
+              <SidebarLink
+                text="Dashboard"
+                icon={<Home size={20} />}
+                active={activePage === 'Dashboard'}
+                onClick={() => setActivePage('Dashboard')}
+              />
+              <SidebarLink
+                text="Cooperados"
+                icon={<Users2 size={20} />}
+                active={activePage === 'Cooperados'}
+                onClick={() => setActivePage('Cooperados')}
+              />
+              <SidebarLink
+                text="Cartões"
+                icon={<CreditCard size={20} />}
+                active={activePage === 'Cartoes'}
+                onClick={() => setActivePage('Cartoes')}
+              />
+              <SidebarLink
+                text="Transações"
+                icon={<DollarSign size={20} />}
+                active={activePage === 'Transacoes'}
+                onClick={() => setActivePage('Transacoes')}
+              />
+              <SidebarLink
+                text="Faturas"
+                icon={<FileText size={20} />}
+                active={activePage === 'Faturas'}
+                onClick={() => setActivePage('Faturas')}
+              />
+              <SidebarLink
+                text="Relatórios"
+                icon={<BarChart3 size={20} />}
+                active={activePage === 'Relatorios'}
+                onClick={() => setActivePage('Relatorios')}
+              />
+            </>
+          )}
+
+          {/* "Cooperativas" é visível para Central e Cooperativa, mas não PA ou Master */}
+          {(usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa') && (
+            <SidebarLink
+              text="Cooperativas"
+              icon={<Building size={20} />}
+              active={activePage === 'Cooperativas'}
+              onClick={() => setActivePage('Cooperativas')}
+            />
+          )}
+
+          {/* "Usuários" é visível apenas para Central */}
+          {usuario.perfil === 'Central' && (
+            <SidebarLink
+              text="Usuários"
+              icon={<Users size={20} />}
+              active={activePage === 'Usuarios'}
+              onClick={() => setActivePage('Usuarios')}
+            />
+          )}
+          
+          {/* "Configurações" é visível para todos, exceto PA */}
+          {usuario.perfil !== 'PA' && (
             <SidebarLink
               text="Configurações"
               icon={<Settings size={20} />}
@@ -320,6 +405,7 @@ function DashboardLayout({ onLogout }: { onLogout: () => void }) {
             />
           )}
         </nav>
+
         <div className="p-4 border-t border-white border-opacity-30">
           <SidebarLink
             text="Sair"
@@ -339,25 +425,28 @@ function DashboardLayout({ onLogout }: { onLogout: () => void }) {
           </h2>
           <div className="text-right">
             <div className="font-semibold text-gray-800">
-              {USUARIO_LOGADO.nome}
+              {usuario.nome}
             </div>
             <div className="text-sm text-gray-500">
-              Central: {mockCentrais.find(c => c.id === USUARIO_LOGADO.centralId)?.nome}
+              {/* Mostra o perfil e a central/coop/pa */}
+              {usuario.perfil}
+              {usuario.centralId && ` | Central: ${mockCentrais.find(c => c.id === usuario.centralId)?.nome}`}
             </div>
           </div>
         </header>
 
         {/* --- ÁREA DE CONTEÚDO CORRIGIDA --- */}
+
         <main className="flex-1 p-6 overflow-y-auto">
-          {activePage === 'Dashboard' && <PaginaDashboard />}
-          {activePage === 'Cooperados' && <PaginaCooperados />}
-          {activePage === 'Cartoes' && <PaginaCartoes />}
-          {activePage === 'Transacoes' && <PaginaTransacoes />}
-          {activePage === 'Faturas' && <PaginaFaturas />}
-          {activePage === 'Relatorios' && <PaginaRelatorios />}
-          {activePage === 'Cooperativas' && <PaginaCooperativas />} 
-          {activePage === 'Usuarios' && <PaginaUsuarios />}
-          {activePage === 'Configuracoes' && <PaginaConfiguracoes />}
+          {activePage === 'Dashboard' && <PaginaDashboard usuario={usuario} />}
+          {activePage === 'Cooperados' && <PaginaCooperados usuario={usuario} />}
+          {activePage === 'Cartoes' && <PaginaCartoes usuario={usuario} />}
+          {activePage === 'Transacoes' && <PaginaTransacoes usuario={usuario} />}
+          {activePage === 'Faturas' && <PaginaFaturas usuario={usuario} />}
+          {activePage === 'Relatorios' && <PaginaRelatorios usuario={usuario} />}
+          {activePage === 'Cooperativas' && <PaginaCooperativas usuario={usuario} />} 
+          {activePage === 'Usuarios' && <PaginaUsuarios usuario={usuario} />}
+          {activePage === 'Configuracoes' && <PaginaConfiguracoes usuario={usuario} />}
           
           {/* Placeholder para as outras páginas */}
           {activePage !== 'Dashboard' && 
@@ -424,7 +513,7 @@ function PaginaPlaceholder({ pageName }: { pageName: string }) {
 }
 
 // =======================================================================
-// 7. A PÁGINA DE DASHBOARD (Sem alterações)
+// 7. A PÁGINA DE DASHBOARD (COM PROP DE USUÁRIO)
 // =======================================================================
 /* ... (Todo o código da PaginaDashboard e seus sub-componentes continua o mesmo) ... */
 // --- Definição de Tipos para o Dashboard ---
@@ -470,7 +559,19 @@ const mockTransacoesRecentes: Transacao[] = [
 ];
 
 // --- Componente PaginaDashboard ---
-function PaginaDashboard() {
+function PaginaDashboard({ usuario }: { usuario: User }) {
+  // Se for Master, nem renderiza o dashboard
+  if (usuario.perfil === 'Master') {
+    return (
+      <div className="p-8 bg-white rounded-xl shadow-lg text-center">
+        <h3 className="text-2xl font-semibold">Bem-vindo, Administrador Master</h3>
+        <p className="mt-2 text-gray-600">
+          Utilize o menu "Configurações" para gerenciar as centrais do sistema.
+        </p>
+      </div>
+    );
+  }
+
   const percentualUtilizado = (mockLimiteCredito.utilizado / mockLimiteCredito.total) * 100;
   return (
     <div className="space-y-6">
@@ -649,21 +750,19 @@ function AtividadePorCartao({ data }: { data: Atividade[] }) {
     </div>
   );
 }
-
-
-// =======================================================================
-// 8. A PÁGINA DE COOPERADOS (Sem alterações)
-// =======================================================================
-/* ... (Todo o código da PaginaCooperados e seus sub-componentes continua o mesmo) ... */
-// --- Definição de Tipos para Cooperados ---
+// --- Definição de Tipos para Cooperados (ATUALIZADO) ---
 type Cooperado = {
   id: number;
   nome: string;
   cpf: string;
-  cooperativa: string;
+  cooperativa: string; // ex: Coopesa
   email: string;
   telefone: string;
   status: 'ativo' | 'bloqueado';
+  // --- CAMPOS ADICIONADOS ---
+  centralId: string;
+  cooperativaId: string;
+  pontoAtendimentoId: string;
 };
 type TransacaoCooperado = {
   id: number; cod: string; data: string;
@@ -671,14 +770,16 @@ type TransacaoCooperado = {
   cartao: string; limite: string;
 };
 
-// --- Dados Mockados da Página Cooperados ---
+// --- Dados Mockados da Página Cooperados (ATUALIZADOS) ---
 const mockCooperados: Cooperado[] = [
-  { id: 1, nome: 'Maria Santos Oliveira', cpf: '234.567.890-11', cooperativa: 'Cooperativa Crédito Sul', email: 'maria.santos@email.com', telefone: '(11) 99076-5432', status: 'ativo' },
-  { id: 2, nome: 'João Pedro Costa', cpf: '345.678.901-22', cooperativa: 'Cooperativa Vale do Aço', email: 'joao.costa@email.com', telefone: '(41) 98765-1234', status: 'ativo' },
-  { id: 3, nome: 'Carlos Eduardo Souza', cpf: '567.890.123-44', cooperativa: 'Central Hubcoop', email: 'carlos.souza@email.com', telefone: '(81) 98765-0012', status: 'ativo' },
-  { id: 4, nome: 'Ana Paula Ferreira', cpf: '456.789.012-33', cooperativa: 'Cooperativa Nordeste', email: 'ana.ferreira@email.com', telefone: '(31) 99076-5678', status: 'ativo' },
-  { id: 5, nome: 'Fernanda Lima Santos', cpf: '678.901.234-55', cooperativa: 'Cooperativa Crédito Sul', email: 'fernanda.lima@email.com', telefone: '(11) 97654-3210', status: 'bloqueado' },
-  { id: 6, nome: 'Daniel Oliveira Silva', cpf: '123.456.789-00', cooperativa: 'Central Hubcoop', email: 'daniel.silva@email.com', telefone: '(11) 98765-4321', status: 'ativo' },
+  // Cooperados da Coopesa (PA 03)
+  { id: 1, nome: 'Maria Santos Oliveira', cpf: '234.567.890-11', cooperativa: 'Coopesa', email: 'maria.santos@email.com', telefone: '(11) 99076-5432', status: 'ativo', centralId: 'c2', cooperativaId: 'coop_coopesa', pontoAtendimentoId: 'pa_03' },
+  { id: 2, nome: 'João Pedro Costa', cpf: '345.678.901-22', cooperativa: 'Coopesa', email: 'joao.costa@email.com', telefone: '(41) 98765-1234', status: 'ativo', centralId: 'c2', cooperativaId: 'coop_coopesa', pontoAtendimentoId: 'pa_03' },
+  // Cooperados da Coopesa (PA 04)
+  { id: 3, nome: 'Carlos Eduardo Souza', cpf: '567.890.123-44', cooperativa: 'Coopesa', email: 'carlos.souza@email.com', telefone: '(81) 98765-0012', status: 'ativo', centralId: 'c2', cooperativaId: 'coop_coopesa', pontoAtendimentoId: 'pa_04' },
+  // Cooperados da Crediserv (PA 05)
+  { id: 4, nome: 'Ana Paula Ferreira', cpf: '456.789.012-33', cooperativa: 'Crediserv', email: 'ana.ferreira@email.com', telefone: '(31) 99076-5678', status: 'ativo', centralId: 'c2', cooperativaId: 'coop_crediserv', pontoAtendimentoId: 'pa_05' },
+  { id: 5, nome: 'Fernanda Lima Santos', cpf: '678.901.234-55', cooperativa: 'Crediserv', email: 'fernanda.lima@email.com', telefone: '(11) 97654-3210', status: 'bloqueado', centralId: 'c2', cooperativaId: 'coop_crediserv', pontoAtendimentoId: 'pa_05' },
 ];
 const mockTransacoesCooperado: TransacaoCooperado[] = [
   { id: 1, cod: '1538', data: '18/12/19', status: 'Negado', cartao: 'Visa Classic', limite: 'R$5.000,00' },
@@ -695,15 +796,28 @@ const mockTiposDeCartao = [
   { id: 'platinum', nome: 'Platinum', img: 'https://placehold.co/100x60/718096/ffffff?text=VISA' },
 ];
 
-// --- Componente PAI da Página Cooperados ---
-function PaginaCooperados() {
-  // ... (código idêntico)
+// --- Componente PAI da Página Cooperados (COM LÓGICA DE SEGREGAÇÃO) ---
+function PaginaCooperados({ usuario }: { usuario: User }) {
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedCooperado, setSelectedCooperado] = useState<Cooperado | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const filteredCooperados = mockCooperados.filter(c =>
+  // --- LÓGICA DE SEGREGAÇÃO (NOVA) ---
+  const cooperadosVisiveis = mockCooperados.filter(coop => {
+    if (usuario.perfil === 'Central') {
+      return coop.centralId === usuario.centralId;
+    }
+    if (usuario.perfil === 'Cooperativa') {
+      return coop.cooperativaId === usuario.cooperativaId;
+    }
+    if (usuario.perfil === 'PA') {
+      return coop.pontoAtendimentoId === usuario.pontoAtendimentoId;
+    }
+    return false; // Master não vê cooperados
+  });
+
+  const filteredCooperados = cooperadosVisiveis.filter(c =>
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.cpf.includes(searchTerm) ||
     c.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -719,6 +833,19 @@ function PaginaCooperados() {
   };
   const handleOpenModal = () => { setShowModal(true); };
   const handleCloseModal = () => { setShowModal(false); };
+
+  // Se o Master cair aqui (não devia, mas por via das dúvidas)
+  if (usuario.perfil === 'Master') {
+    return (
+      <div className="p-8 bg-white rounded-xl shadow-lg text-center">
+        <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto" />
+        <h3 className="text-2xl font-semibold mt-4">Acesso Indisponível</h3>
+        <p className="mt-2 text-gray-600">
+          O perfil Master não gerencia cooperados.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1262,9 +1389,8 @@ function InfoRevisao({ label, value }: { label: string; value: string }) {
   );
 }
 
-
 // =======================================================================
-// 10. A PÁGINA DE CARTÕES (Sem alterações)
+// 10. A PÁGINA DE CARTÕES (COM PROP DE USUÁRIO)
 // =======================================================================
 /* ... (Todo o código da PaginaCartoes e seus sub-componentes continua o mesmo) ... */
 // --- Definição de Tipos para Cartões ---
@@ -1341,7 +1467,7 @@ const mockConfiguracoesProduto: ProdutoConfig[] = [
 // --- Componente PAI da Página Cartões ---
 type CartoesViewMode = 'lista' | 'upgrade' | 'anuidade_cooperado' | 'anuidade_produto' | 'configuracoes_produto';
 
-function PaginaCartoes() {
+function PaginaCartoes({ usuario }: { usuario: User }) {
   // ... (código idêntico)
   const [viewMode, setViewMode] = useState<CartoesViewMode>('lista');
 
@@ -1791,7 +1917,7 @@ function ViewConfiguracoesProduto() {
 
 
 // =======================================================================
-// 11. A PÁGINA DE TRANSAÇÕES (Sem alterações)
+// 11. A PÁGINA DE TRANSAÇÕES (COM PROP DE USUÁRIO)
 // =======================================================================
 /* ... (Todo o código da PaginaTransacoes e seus sub-componentes continua o mesmo) ... */
 // --- Definição de Tipos para Transações ---
@@ -1844,7 +1970,7 @@ const categoriasContestacao = [
 // --- Componente PAI da Página Transações ---
 type TransacoesViewMode = 'lista' | 'contestar';
 
-function PaginaTransacoes() {
+function PaginaTransacoes({ usuario }: { usuario: User }) {
   // ... (código idêntico)
   const [viewMode, setViewMode] = useState<TransacoesViewMode>('lista');
 
@@ -2041,9 +2167,8 @@ function ViewFormContestacao() {
   );
 }
 
-
 // =======================================================================
-// 12. A PÁGINA DE FATURAS (Sem alterações)
+// 12. A PÁGINA DE FATURAS (COM PROP DE USUÁRIO)
 // =======================================================================
 /* ... (Todo o código da PaginaFaturas e seus sub-componentes continua o mesmo) ... */
 // --- Definição de Tipos para Faturas ---
@@ -2082,7 +2207,7 @@ const mockListaDeFaturas: Fatura[] = [
 ];
 
 // --- Componente PAI da Página Faturas ---
-function PaginaFaturas() {
+function PaginaFaturas({ usuario }: { usuario: User }) {
   // ... (código idêntico)
   return (
     <div className="space-y-6">
@@ -2199,7 +2324,7 @@ function ExportarDropdown() {
 }
 
 // =======================================================================
-// 13. A PÁGINA DE RELATÓRIOS (Sem alterações)
+// 13. A PÁGINA DE RELATÓRIOS (COM PROP DE USUÁRIO)
 // =======================================================================
 /* ... (Todo o código da PaginaRelatorios e seus sub-componentes continua o mesmo) ... */
 // --- Dados Mockados da Página Relatórios ---
@@ -2258,7 +2383,7 @@ const mockTiposDeRelatorios: RelatorioTipo[] = [
 
 
 // --- Componente PAI da Página Relatórios ---
-function PaginaRelatorios() {
+function PaginaRelatorios({ usuario }: { usuario: User }) {
   return (
     <div className="space-y-6">
       {/* KPIs */}
@@ -2395,8 +2520,22 @@ function ViewGerarRelatorios({ tipos }: { tipos: RelatorioTipo[] }) {
 // 14. A PÁGINA DE COOPERATIVAS (COM LÓGICA DE SEGREGAÇÃO CORRIGIDA)
 // =======================================================================
 type CooperativasViewMode = 'lista' | 'detalhe';
+type ViewListaCooperativasProps = {
+  kpis: {
+    total: number;
+    limiteOutorgado: number;
+    limiteUtilizado: number;
+    percUtilizacao: number;
+  };
+  cooperativas: Cooperativa[];
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  onSelect: (cooperativa: Cooperativa) => void;
+  onNovaCooperativa: () => void;
+};
 
-function PaginaCooperativas() {
+
+function PaginaCooperativas({ usuario }: { usuario: User }) {
   const [viewMode, setViewMode] = useState<CooperativasViewMode>('lista');
   const [selectedCooperativa, setSelectedCooperativa] = useState<Cooperativa | null>(null);
   const [showModalNovaCoop, setShowModalNovaCoop] = useState(false);
@@ -2406,12 +2545,19 @@ function PaginaCooperativas() {
 
   // --- LÓGICA DE SEGREGAÇÃO (CORRIGIDA) ---
   const cooperativasVisiveis = mockCooperativas.filter(coop => {
-    // Se for Admin (c1), vê APENAS as Centrais (tipo: Central)
-    if (USUARIO_LOGADO.centralId === 'c1') {
+    // Se for Master (c1), vê APENAS as Centrais (tipo: Central)
+    if (usuario.perfil === 'Master') {
       return coop.tipo === 'Central';
     }
     // Se for de uma Central (ex: c2), vê APENAS as Singulares (tipo: Singular) da sua central
-    return coop.centralId === USUARIO_LOGADO.centralId && coop.tipo === 'Singular';
+    if (usuario.perfil === 'Central') {
+      return coop.centralId === usuario.centralId && coop.tipo === 'Singular';
+    }
+    // Se for de uma Cooperativa, vê apenas a si mesma
+    if (usuario.perfil === 'Cooperativa') {
+      return coop.id === usuario.cooperativaId;
+    }
+    return false; // PA não vê esta página
   });
   
   const cooperativasFiltradas = cooperativasVisiveis.filter(c =>
@@ -2430,7 +2576,7 @@ function PaginaCooperativas() {
   // --- Funções de Navegação (COM A LÓGICA DO POPUP) ---
   const handleSelectCooperativa = (cooperativa: Cooperativa) => {
     // REGRA: Se o user é Admin (c1)...
-    if (USUARIO_LOGADO.centralId === 'c1') {
+    if (usuario?.centralId === 'c1') {
       // E a central clicada NÃO É a Credisis (c2_coop)...
       if (cooperativa.id !== 'c2_coop') { 
         setShowAlert(true); // <-- ABRE O POPUP
@@ -2482,6 +2628,7 @@ function PaginaCooperativas() {
           setSearchTerm={setSearchTerm}
           onSelect={handleSelectCooperativa}
           onNovaCooperativa={() => setShowModalNovaCoop(true)}
+          usuario={usuario}
         />
       )}
       
@@ -2502,7 +2649,7 @@ function PaginaCooperativas() {
 }
 // --- Componentes da Página Cooperativas ---
 /* ... (Todos os componentes ListaCooperados e DetalheCooperado continuam idênticos) ... */
-function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, onSelect, onNovaCooperativa }: ViewListaCooperativasProps) {
+function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, onSelect, onNovaCooperativa, usuario }: ViewListaCooperativasProps & { usuario: User }) {
   // ... (código idêntico)
   return (
     <div className="space-y-6">
@@ -2533,7 +2680,7 @@ function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, 
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             </div>
             {/* O botão "Nova Cooperativa" só aparece se você for admin de uma central */}
-            {USUARIO_LOGADO.centralId !== 'c1' && (
+            {usuario.perfil === 'Central' && (
               <button
                 onClick={onNovaCooperativa}
                 className="flex-shrink-0 flex items-center px-4 py-2 text-white rounded-lg shadow-sm transition-colors"
@@ -2713,7 +2860,7 @@ function ModalNovaCentral({ onClose }: { onClose: () => void }) {
             </div>
              <p className="text-sm text-gray-600">
                Ao cadastrar uma nova central, ela operará de forma 100% segregada.
-               Os seus dados não serão visíveis pela Credisis ou Uniprime,
+               Os seus dados não serão visíveis pela Credisis ou ,
                e ela não terá visibilidade dos dados das outras centrais.
              </p>
              <button
@@ -2729,55 +2876,30 @@ function ModalNovaCentral({ onClose }: { onClose: () => void }) {
 }
 
 // =======================================================================
-// 15. A PÁGINA DE USUÁRIOS (Backoffice) - CORRIGIDA
+// 15. A PÁGINA DE USUÁRIOS (Backoffice) - (COM PROP DE USUÁRIO)
 // =======================================================================
 
 // --- Definição de Tipos para Usuários ---
 type PerfilUsuario = 'Atendente' | 'Consulta' | 'Gerente' | 'Administrador';
-type StatusUsuario = 'Ativo' | 'Inativo';
-type UsuarioSistema = {
-  id: number;
-  nome: string;
-  cpf: string;
-  email: string;
-  perfil: PerfilUsuario;
-  grupo: string;
-  ultimoAcesso: string;
-  status: StatusUsuario;
-};
+// ... (o resto dos tipos pode continuar)
 type LogAuditoria = {
-  id: number;
-  timestamp: string;
-  usuario: string;
-  ip: string;
-  acao: string;
-  entidade: string;
-  entidadeId: string;
-  descricao: string;
+  // ...
 };
 
 // --- Dados Mockados da Página Usuários ---
 const mockUsuarios: UsuarioSistema[] = [
-  { id: 1, nome: 'Mariana Alves Lima', cpf: '444.555.666-77', email: 'mariana.lima@hubcoop.com.br', perfil: 'Atendente', grupo: 'Atendimento Nordeste', ultimoAcesso: '13/11/25 09:10', status: 'Ativo' },
-  { id: 2, nome: 'Ricardo Ferreira Costa', cpf: '555.666.777-88', email: 'ricardo.costa@hubcoop.com.br', perfil: 'Consulta', grupo: 'Suporte Técnico', ultimoAcesso: '15/10/25 14:30', status: 'Inativo' },
-  { id: 3, nome: 'Juliana Costa Oliveira', cpf: '222.333.444-55', email: 'juliana.oliveira@hubcoop.com.br', perfil: 'Gerente', grupo: 'Atendimento Geral', ultimoAcesso: '13/11/25 07:45', status: 'Ativo' },
-  { id: 4, nome: 'Paulo Henrique Souza', cpf: '333.444.555-66', email: 'paulo.souza@hubcoop.com.br', perfil: 'Atendente', grupo: 'Atendimento Sul', ultimoAcesso: '12/11/25 16:20', status: 'Ativo' },
-  { id: 5, nome: 'Roberto Silva Santos', cpf: '111.222.333-44', email: 'roberto.santos@hubcoop.com.br', perfil: 'Administrador', grupo: 'Atendimento Geral', ultimoAcesso: '13/11/25 08:30', status: 'Ativo' },
+  // ... (os dados mockados continuam)
 ];
 
 const mockLogsAuditoria: LogAuditoria[] = [
-  { id: 1, timestamp: '13/11/2025 10:30:15', usuario: 'roberto.santos@hubcoop.com.br', ip: '192.168.1.1', acao: 'UPDATE', entidade: 'Produto', entidadeId: 'infinite', descricao: "Alterou anuidade do produto 'Infinite' para R$ 480,00." },
-  { id: 2, timestamp: '13/11/2025 10:25:02', usuario: 'mariana.lima@hubcoop.com.br', ip: '192.168.1.5', acao: 'CREATE', entidade: 'Cartão', entidadeId: '9876-0001', descricao: "Solicitou novo cartão 'Visa Gold' para o cooperado 'João Pedro Costa'." },
-  { id: 3, timestamp: '13/11/2025 09:10:00', usuario: 'mariana.lima@hubcoop.com.br', ip: '192.168.1.5', acao: 'LOGIN', entidade: 'Sistema', entidadeId: 'N/A', descricao: "Usuário logado com sucesso." },
-  { id: 4, timestamp: '13/11/2025 08:30:10', usuario: 'roberto.santos@hubcoop.com.br', ip: '192.168.1.1', acao: 'LOGIN', entidade: 'Sistema', entidadeId: 'N/A', descricao: "Usuário logado com sucesso." },
-  { id: 5, timestamp: '12/11/2025 16:22:00', usuario: 'paulo.souza@hubcoop.com.br', ip: '192.168.1.8', acao: 'UPDATE', entidade: 'Cooperado', entidadeId: 'coop_5', descricao: "Alterou status do cooperado 'Fernanda Lima Santos' para 'bloqueado'." },
-  { id: 6, timestamp: '12/11/2025 16:20:05', usuario: 'paulo.souza@hubcoop.com.br', ip: '192.168.1.8', acao: 'LOGIN', entidade: 'Sistema', entidadeId: 'N/A', descricao: "Usuário logado com sucesso." },
+  // ... (os dados mockados continuam)
 ];
 
 // --- Componente PAI da Página Usuários ---
 type UsuariosViewMode = 'lista' | 'logs';
 
-function PaginaUsuarios() {
+// CORREÇÃO AQUI: Adicione a prop { usuario }: { usuario: User }
+function PaginaUsuarios({ usuario }: { usuario: User }) {
   const [viewMode, setViewMode] = useState<UsuariosViewMode>('lista');
 
   const renderView = () => {
@@ -3007,133 +3129,240 @@ function ViewLogsAuditoria({ logs }: { logs: LogAuditoria[] }) {
 }
 
 // =======================================================================
-// 16. A NOVA PÁGINA DE CONFIGURAÇÕES (Admin) - ADICIONADA
+// 16. A NOVA PÁGINA DE CONFIGURAÇÕES (Segregada)
 // =======================================================================
-function PaginaConfiguracoes() {
-  const [centrais, setCentrais] = useState(mockCentrais);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-
-  // Se o usuário não for admin, bloqueia a página
-  if (USUARIO_LOGADO.perfil !== 'Administrador') {
+function PaginaConfiguracoes({ usuario }: { usuario: User }) {
+  
+  // Se for PA, bloqueia a página (o menu já deve esconder, mas é uma garantia)
+  if (usuario.perfil === 'PA') {
     return (
       <div className="p-8 bg-white rounded-xl shadow-lg text-center">
         <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
         <h3 className="text-2xl font-semibold mt-4">Acesso Negado</h3>
         <p className="mt-2 text-gray-600">
-          Apenas administradores (nível Hubcoop/Matriz) podem aceder à página de configurações.
+          Seu perfil não tem acesso à página de configurações.
         </p>
       </div>
     );
   }
 
-  // Lidar com o upload do logo (simulação)
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       
-      {/* Coluna 1: Cadastrar Nova Central */}
+      {/* Coluna 1: Cadastros */}
       <div className="lg:col-span-1 space-y-6">
-        <div className="p-8 bg-white rounded-xl shadow-lg">
-          {/* --- AVISO DE ADMIN ADICIONADO --- */}
-          <div className="p-4 mb-4 bg-yellow-50 border border-yellow-300 rounded-lg">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  Somente administradores têm acesso para cadastrar uma nova central ou editar um dado.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <h3 className="text-xl font-semibold text-gray-800">Cadastrar Nova Central</h3>
-          <p className="text-sm text-gray-500 mt-1 mb-6">
-            Crie um novo administrador e uma nova central segregada.
-          </p>
-          <form className="space-y-4">
-            <div>
-              <label htmlFor="adminNome" className="block text-sm font-medium text-gray-700">Nome Completo do Administrador</label>
-              <input type="text" id="adminNome" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
-            </div>
-            <div>
-              <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700">Email do Administrador</label>
-              <input type="email" id="adminEmail" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
-            </div>
-            <div>
-              <label htmlFor="centralNome" className="block text-sm font-medium text-gray-700">Nome da Central</label>
-              <input type="text" id="centralNome" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
-            </div>
-            <div>
-              <label htmlFor="centralId" className="block text-sm font-medium text-gray-700">ID da Central (ex: c4)</label>
-              <input type="text" id="centralId" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
-            </div>
-            <div>
-              <label htmlFor="centralLogo" className="block text-sm font-medium text-gray-700">Logo da Central</label>
-              <input 
-                type="file" 
-                id="centralLogo" 
-                accept="image/*"
-                onChange={handleLogoChange}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-hub-teal file:text-white hover:file:bg-hub-teal-dark" 
-              />
-            </div>
-            {logoPreview && (
-              <div className="text-center">
-                <p className="text-sm font-medium">Preview do Logo:</p>
-                <img src={logoPreview} alt="Preview" className="w-24 h-24 object-contain mx-auto mt-2" />
-              </div>
-            )}
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center px-6 py-2 text-white rounded-lg shadow-sm"
-              style={{ backgroundColor: HUB_BRAND_COLOR }}
-            >
-              <UserPlus className="w-5 h-5 mr-2" />
-              Cadastrar Central
-            </button>
-          </form>
-        </div>
+        
+        {/* === VISÍVEL APENAS PARA O MASTER === */}
+        {usuario.perfil === 'Master' && (
+          <FormCadastroCentral />
+        )}
+
+        {/* === VISÍVEL APENAS PARA A CENTRAL === */}
+        {usuario.perfil === 'Central' && (
+          <FormCadastroCooperativa usuario={usuario} />
+        )}
+
+        {/* === VISÍVEL PARA CENTRAL OU COOPERATIVA === */}
+        {(usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa') && (
+          <FormCadastroPA usuario={usuario} />
+        )}
       </div>
 
-      {/* Coluna 2: Centrais Existentes */}
+      {/* Coluna 2: Listagens para Edição */}
       <div className="lg:col-span-2 space-y-6">
-        <div className="p-8 bg-white rounded-xl shadow-lg">
-           <h3 className="text-xl font-semibold text-gray-800">Centrais Existentes</h3>
-           <p className="text-sm text-gray-500 mt-1 mb-6">
-             Edite as informações das centrais já cadastradas.
-           </p>
-           <div className="space-y-4">
-            {/* Filtramos a c1 (Matriz) para não aparecer na lista de "editar" */}
-            {centrais.filter(c => c.id !== 'c1').map(central => (
-              <div key={central.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                <div className="flex items-center">
-                  <img src={central.logo} alt={central.nome} className="w-10 h-10 object-contain rounded-full bg-white border shadow-sm" />
-                  <div className="ml-4">
-                    <p className="text-lg font-semibold text-gray-900">{central.nome}</p>
-                    <p className="text-sm text-gray-500">ID: {central.id} | Admin: {central.admin}</p>
-                  </div>
-                </div>
-                <button className="flex items-center px-4 py-2 text-sm text-white bg-hub-teal rounded-lg shadow-sm">
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Editar
-                </button>
-              </div>
-            ))}
-           </div>
-        </div>
-      </div>
+        
+        {/* === VISÍVEL APENAS PARA O MASTER === */}
+        {usuario.perfil === 'Master' && (
+          <ListaEdicaoCentrais />
+        )}
 
+        {/* === VISÍVEL APENAS PARA A CENTRAL === */}
+        {usuario.perfil === 'Central' && (
+          <ListaEdicaoCooperativas usuario={usuario} />
+        )}
+
+        {/* === VISÍVEL PARA CENTRAL OU COOPERATIVA === */}
+        {(usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa') && (
+          <ListaEdicaoPA usuario={usuario} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-componentes de Configurações ---
+
+// MASTER: Cadastra Central
+function FormCadastroCentral() {
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onloadend = () => setLogoPreview(reader.result as string);
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+  
+  return (
+    <div className="p-8 bg-white rounded-xl shadow-lg">
+      <h3 className="text-xl font-semibold text-gray-800">Cadastrar Nova Central</h3>
+      <p className="text-sm text-gray-500 mt-1 mb-6">
+        Crie um novo administrador e uma nova central segregada.
+      </p>
+      <form className="space-y-4">
+        <div>
+          <label htmlFor="adminNome" className="block text-sm font-medium text-gray-700">Nome Completo do Administrador</label>
+          <input type="text" id="adminNome" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+        </div>
+        <div>
+          <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700">Email do Administrador</label>
+          <input type="email" id="adminEmail" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+        </div>
+        <div>
+          <label htmlFor="centralNome" className="block text-sm font-medium text-gray-700">Nome da Central</label>
+          <input type="text" id="centralNome" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+        </div>
+        <div>
+          <label htmlFor="centralLogo" className="block text-sm font-medium text-gray-700">Logo da Central</label>
+          <input type="file" id="centralLogo" accept="image/*" onChange={handleLogoChange} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-hub-teal file:text-white hover:file:bg-hub-teal-dark" />
+        </div>
+        {logoPreview && <img src={logoPreview} alt="Preview" className="w-24 h-24 object-contain mx-auto mt-2" />}
+        <button type="submit" className="w-full flex items-center justify-center px-6 py-2 text-white rounded-lg shadow-sm" style={{ backgroundColor: HUB_BRAND_COLOR }}>
+          <UserPlus className="w-5 h-5 mr-2" /> Cadastrar Central
+        </button>
+      </form>
+    </div>
+  );
+}
+
+// MASTER: Edita Centrais
+function ListaEdicaoCentrais() {
+  const centrais = mockCentrais.filter(c => c.id !== 'c1'); // Não editar a própria Hubcoop
+  return (
+    <div className="p-8 bg-white rounded-xl shadow-lg">
+       <h3 className="text-xl font-semibold text-gray-800">Centrais Existentes</h3>
+       <p className="text-sm text-gray-500 mt-1 mb-6">Edite as centrais já cadastradas.</p>
+       <div className="space-y-4">
+        {centrais.map(central => (
+          <div key={central.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+            <div className="flex items-center">
+              <img src={central.logo} alt={central.nome} className="w-10 h-10 object-contain rounded-full bg-white border shadow-sm" />
+              <div className="ml-4">
+                <p className="text-lg font-semibold text-gray-900">{central.nome}</p>
+                <p className="text-sm text-gray-500">ID: {central.id} | Admin: {central.admin}</p>
+              </div>
+            </div>
+            <button className="flex items-center px-4 py-2 text-sm text-white bg-hub-teal rounded-lg shadow-sm">
+              <Edit2 className="w-4 h-4 mr-2" /> Editar
+            </button>
+          </div>
+        ))}
+       </div>
+    </div>
+  );
+}
+
+// CENTRAL: Cadastra Cooperativa
+function FormCadastroCooperativa({ usuario }: { usuario: User }) {
+   return (
+    <div className="p-8 bg-white rounded-xl shadow-lg">
+      <h3 className="text-xl font-semibold text-gray-800">Cadastrar Nova Cooperativa</h3>
+      <p className="text-sm text-gray-500 mt-1 mb-6">
+        Adicionar uma nova cooperativa singular à sua central ({mockCentrais.find(c => c.id === usuario.centralId)?.nome}).
+      </p>
+      {/* ... (Aqui iria o formulário de Nova Cooperativa) ... */}
+      <button className="w-full flex items-center justify-center px-6 py-2 text-white rounded-lg shadow-sm" style={{ backgroundColor: HUB_BRAND_COLOR }}>
+        <Plus className="w-5 h-5 mr-2" /> Cadastrar Cooperativa
+      </button>
+    </div>
+  );
+}
+
+// CENTRAL: Edita Cooperativas
+function ListaEdicaoCooperativas({ usuario }: { usuario: User }) {
+  const cooperativas = mockCooperativas.filter(c => c.centralId === usuario.centralId && c.tipo === 'Singular');
+  return (
+    <div className="p-8 bg-white rounded-xl shadow-lg">
+       <h3 className="text-xl font-semibold text-gray-800">Cooperativas da sua Central</h3>
+       <p className="text-sm text-gray-500 mt-1 mb-6">Edite as cooperativas singulares.</p>
+       <div className="space-y-4 max-h-96 overflow-y-auto">
+        {cooperativas.map(coop => (
+          <div key={coop.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+            <div>
+              <p className="text-lg font-semibold text-gray-900">{coop.nome} (Cód: {coop.codigo})</p>
+              <p className="text-sm text-gray-500">CNPJ: {coop.cnpj}</p>
+            </div>
+            <button className="flex items-center px-4 py-2 text-sm text-white bg-hub-teal rounded-lg shadow-sm">
+              <Edit2 className="w-4 h-4 mr-2" /> Editar
+            </button>
+          </div>
+        ))}
+       </div>
+    </div>
+  );
+}
+
+// CENTRAL ou COOPERATIVA: Cadastra PA
+function FormCadastroPA({ usuario }: { usuario: User }) {
+  return (
+    <div className="p-8 bg-white rounded-xl shadow-lg">
+      <h3 className="text-xl font-semibold text-gray-800">Cadastrar Novo Ponto de Atendimento</h3>
+      <p className="text-sm text-gray-500 mt-1 mb-6">
+        Adicionar um novo PA.
+      </p>
+      {/* Se for Central, precisa de um <select> para escolher a cooperativa */}
+      {usuario.perfil === 'Central' && (
+        <div className="mb-4">
+          <label htmlFor="coopSelect" className="block text-sm font-medium text-gray-700">Selecionar Cooperativa</label>
+          <select id="coopSelect" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md">
+            {mockCooperativas.filter(c => c.centralId === usuario.centralId && c.tipo === 'Singular').map(c => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
+        </div>
+      )}
+      {/* ... (Aqui iria o formulário de Novo PA) ... */}
+      <button className="w-full flex items-center justify-center px-6 py-2 text-white rounded-lg shadow-sm" style={{ backgroundColor: HUB_BRAND_COLOR }}>
+        <Plus className="w-5 h-5 mr-2" /> Cadastrar PA
+      </button>
+    </div>
+  );
+}
+
+// CENTRAL ou COOPERATIVA: Edita PA
+function ListaEdicaoPA({ usuario }: { usuario: User }) {
+  const pas = mockPontosAtendimento.filter(pa => {
+    if (usuario.perfil === 'Central') {
+      // Pega os IDs das cooperativas da central
+      const coopIds = mockCooperativas.filter(c => c.centralId === usuario.centralId).map(c => c.id);
+      return coopIds.includes(pa.cooperativaId);
+    }
+    if (usuario.perfil === 'Cooperativa') {
+      return pa.cooperativaId === usuario.cooperativaId;
+    }
+    return false;
+  });
+
+  return (
+    <div className="p-8 bg-white rounded-xl shadow-lg">
+       <h3 className="text-xl font-semibold text-gray-800">Pontos de Atendimento</h3>
+       <p className="text-sm text-gray-500 mt-1 mb-6">Edite os PAs cadastrados.</p>
+       <div className="space-y-4 max-h-96 overflow-y-auto">
+        {pas.length > 0 ? pas.map(pa => (
+          <div key={pa.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+            <div>
+              <p className="text-lg font-semibold text-gray-900">{pa.nome} (Cód: {pa.codigo})</p>
+              <p className="text-sm text-gray-500">Status: {pa.status}</p>
+            </div>
+            <button className="flex items-center px-4 py-2 text-sm text-white bg-hub-teal rounded-lg shadow-sm">
+              <Edit2 className="w-4 h-4 mr-2" /> Editar
+            </button>
+          </div>
+        )) : (
+          <p className="text-sm text-gray-500 text-center">Nenhum Ponto de Atendimento encontrado para este perfil.</p>
+        )}
+       </div>
     </div>
   );
 }
