@@ -1,0 +1,50 @@
+{
+  "name": "PontoAtendimento",
+  "type": "object",
+  "properties": {
+    "codigo": {
+      "type": "string",
+      "description": "Código do ponto de atendimento (ex: 03, 04)"
+    },
+    "nome": {
+      "type": "string",
+      "description": "Nome do ponto de atendimento"
+    },
+    "cooperativa_id": {
+      "type": "string",
+      "description": "ID da cooperativa"
+    },
+    "central_id": {
+      "type": "string",
+      "description": "ID da central"
+    },
+    "endereco": {
+      "type": "string"
+    },
+    "cidade": {
+      "type": "string"
+    },
+    "estado": {
+      "type": "string"
+    },
+    "telefone": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "responsavel": {
+      "type": "string",
+      "description": "Nome do responsável pelo ponto"
+    },
+    "ativo": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "codigo",
+    "nome",
+    "cooperativa_id"
+  ]
+}

@@ -1,0 +1,148 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+
+export default function PopularDados() {
+  const [loading, setLoading] = useState(false);
+  const [resultado, setResultado] = useState(null);
+
+  const popularDados = async () => {
+    setLoading(true);
+    setResultado(null);
+
+    try {
+      const central = await base44.entities.Central.create({
+        codigo: '001',
+        nome: 'Credisis',
+        cnpj: '00.000.000/0001-00',
+        endereco: 'Rua Central, 100',
+        cidade: 'São Paulo',
+        estado: 'SP',
+        telefone: '(11) 3000-0000',
+        email: 'contato@credisis.com.br',
+        ativo: true
+      });
+
+      const cooperativas = [
+        'Crediserv', 'Primacredi', 'Coopesa', 'CredBem Metropolitana',
+        'Uniindústria', 'Credisul', 'Cooperufpa', 'CrediBrás',
+        'Oeste', 'CrediAri', 'JiCred', 'Sudoeste', 'CapitalCredi', 'CrediPlan'
+      ];
+
+      const cooperativasCriadas = [];
+      for (let i = 0; i < cooperativas.length; i++) {
+        const coop = await base44.entities.Cooperativa.create({
+          codigo: String(i + 1).padStart(3, '0'),
+          nome: cooperativas[i],
+          cnpj: `00.000.000/00${String(i + 10).padStart(2, '0')}-${String(i).padStart(2, '0')}`,
+          central_id: central.id,
+          tipo: 'singular',
+          envio_cartao: 'cooperativa',
+          limite_outorgado: 1000000 + (i * 100000),
+          limite_utilizado: 0,
+          endereco: `Rua ${cooperativas[i]}, ${(i + 1) * 100}`,
+          cidade: ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Brasília', 'Porto Alegre'][i % 5],
+          estado: ['SP', 'RJ', 'MG', 'DF', 'RS'][i % 5],
+          telefone: `(${String(11 + i).padStart(2, '0')}) 3${String(i).padStart(3, '0')}-${String(i * 1000).padStart(4, '0')}`,
+          email: `contato@${cooperativas[i].toLowerCase().replace(/\s/g, '')}.com.br`,
+          ativo: true
+        });
+
+        cooperativasCriadas.push(coop);
+
+        for (let j = 1; j <= 4; j++) {
+          await base44.entities.PontoAtendimento.create({
+            codigo: String(j).padStart(2, '0'),
+            nome: `Ponto ${String(j).padStart(2, '0')} - ${cooperativas[i]}`,
+            cooperativa_id: coop.id,
+            central_id: central.id,
+            endereco: `Av. Ponto ${j}, ${j * 50}`,
+            cidade: coop.cidade,
+            estado: coop.estado,
+            telefone: `(${String(11 + i).padStart(2, '0')}) 3${String(j).padStart(3, '0')}-${String(j * 100).padStart(4, '0')}`,
+            email: `ponto${j}@${cooperativas[i].toLowerCase().replace(/\s/g, '')}.com.br`,
+            responsavel: `Responsável PA ${j}`,
+            ativo: true
+          });
+        }
+      }
+
+      setResultado({
+        sucesso: true,
+        mensagem: `Dados criados com sucesso! 1 central, ${cooperativasCriadas.length} cooperativas e ${cooperativasCriadas.length * 4} pontos de atendimento.`
+      });
+
+    } catch (error) {
+      console.error('Erro ao popular dados:', error);
+      setResultado({
+        sucesso: false,
+        mensagem: `Erro: ${error.message}`
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <Card className="border-t-4 border-t-[#4A9B8E]">
+        <CardHeader>
+          <CardTitle>Popular Dados do Sistema</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-slate-600">
+            Este script irá criar:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-slate-600">
+            <li>1 Central (Credisis)</li>
+            <li>14 Cooperativas vinculadas à Credisis</li>
+            <li>4 Pontos de Atendimento para cada cooperativa (56 no total)</li>
+          </ul>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800 text-sm">
+            <p className="font-semibold">Atenção:</p>
+            <p>Execute este script apenas uma vez. Executá-lo novamente criará dados duplicados.</p>
+          </div>
+
+          <Button
+            onClick={popularDados}
+            disabled={loading}
+            className="w-full bg-[#4A9B8E] hover:bg-[#3A7B6E]"
+            size="lg"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Populando dados...
+              </>
+            ) : (
+              'Popular Dados'
+            )}
+          </Button>
+
+          {resultado && (
+            <div className={`p-4 rounded-lg ${resultado.sucesso ? 'bg-emerald-50 border border-emerald-200' : 'bg-red-50 border border-red-200'}`}>
+              <div className="flex items-start gap-3">
+                {resultado.sucesso ? (
+                  <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                )}
+                <div>
+                  <p className={`font-semibold ${resultado.sucesso ? 'text-emerald-900' : 'text-red-900'}`}>
+                    {resultado.sucesso ? 'Sucesso!' : 'Erro'}
+                  </p>
+                  <p className={`text-sm ${resultado.sucesso ? 'text-emerald-700' : 'text-red-700'}`}>
+                    {resultado.mensagem}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

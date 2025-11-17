@@ -6,107 +6,110 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Plus, Eye, Edit, UserCheck, UserX } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Building2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import CooperadoForm from '../components/cooperados/CooperadoForm';
-import CooperadoDetalhes from '../components/cooperados/CooperadoDetalhes';
+import CentralForm from '../components/centrais/CentralForm';
+import CentralDetalhes from '../components/centrais/CentralDetalhes';
 
-export default function Cooperados() {
+export default function Centrais() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCooperado, setSelectedCooperado] = useState(null);
+  const [selectedCentral, setSelectedCentral] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: cooperados = [], isLoading } = useQuery({
-    queryKey: ['cooperados'],
-    queryFn: () => base44.entities.Cooperado.list('-created_date')
-  });
-
-  const { data: cooperativas = [] } = useQuery({
-    queryKey: ['cooperativas'],
-    queryFn: () => base44.entities.Cooperativa.list()
-  });
-
-  const { data: centrais = [] } = useQuery({
+  const { data: centrais = [], isLoading } = useQuery({
     queryKey: ['centrais'],
-    queryFn: () => base44.entities.Central.list()
-  });
-
-  const { data: pontosAtendimento = [] } = useQuery({
-    queryKey: ['pontosAtendimento'],
-    queryFn: () => base44.entities.PontoAtendimento.list()
+    queryFn: () => base44.entities.Central.list('-created_date')
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Cooperado.create(data),
+    mutationFn: (data) => base44.entities.Central.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['cooperados']);
+      queryClient.invalidateQueries(['centrais']);
       setIsFormOpen(false);
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Cooperado.update(id, data),
+    mutationFn: ({ id, data }) => base44.entities.Central.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['cooperados']);
+      queryClient.invalidateQueries(['centrais']);
       setIsFormOpen(false);
-      setSelectedCooperado(null);
+      setSelectedCentral(null);
     }
   });
 
-  const filteredCooperados = cooperados.filter(c => 
-    c.nome_completo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.cpf?.includes(searchTerm) ||
-    c.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredCentrais = centrais.filter(c =>
+    c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.cnpj?.includes(searchTerm) ||
+    c.codigo?.includes(searchTerm)
   );
-
-  const getCooperativaNome = (id) => {
-    return cooperativas.find(c => c.id === id)?.nome || 'N/A';
-  };
-
-  const statusColors = {
-    ativo: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    inativo: 'bg-slate-100 text-slate-700 border-slate-200',
-    bloqueado: 'bg-red-100 text-red-700 border-red-200',
-    anulado: 'bg-orange-100 text-orange-700 border-orange-200'
-  };
 
   return (
     <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-t-4 border-t-[#4A9B8E]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Total de Centrais</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{centrais.length}</span>
+              <div className="p-3 rounded-xl bg-[#4A9B8E]/10">
+                <Building2 className="w-6 h-6 text-[#4A9B8E]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-emerald-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Centrais Ativas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">
+                {centrais.filter(c => c.ativo).length}
+              </span>
+              <div className="p-3 rounded-xl bg-emerald-50">
+                <Building2 className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="border-t-4 border-t-[#4A9B8E]">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl">Gestão de Cooperados</CardTitle>
-              <p className="text-sm text-slate-500 mt-1">Cadastro e gerenciamento de cooperados</p>
+              <CardTitle className="text-2xl">Centrais</CardTitle>
+              <p className="text-sm text-slate-500 mt-1">Gestão de centrais cooperativas</p>
             </div>
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-[#4A9B8E] hover:bg-[#3A7B6E]" onClick={() => setSelectedCooperado(null)}>
+                <Button className="bg-[#4A9B8E] hover:bg-[#3A7B6E]" onClick={() => setSelectedCentral(null)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Novo Cooperado
+                  Nova Central
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{selectedCooperado ? 'Editar Cooperado' : 'Novo Cooperado'}</DialogTitle>
+                  <DialogTitle>{selectedCentral ? 'Editar Central' : 'Nova Central'}</DialogTitle>
                 </DialogHeader>
-                <CooperadoForm
-                  cooperado={selectedCooperado}
-                  cooperativas={cooperativas}
-                  centrais={centrais}
-                  pontosAtendimento={pontosAtendimento}
+                <CentralForm
+                  central={selectedCentral}
                   onSubmit={(data) => {
-                    if (selectedCooperado) {
-                      updateMutation.mutate({ id: selectedCooperado.id, data });
+                    if (selectedCentral) {
+                      updateMutation.mutate({ id: selectedCentral.id, data });
                     } else {
                       createMutation.mutate(data);
                     }
                   }}
                   onCancel={() => {
                     setIsFormOpen(false);
-                    setSelectedCooperado(null);
+                    setSelectedCentral(null);
                   }}
                 />
               </DialogContent>
@@ -118,7 +121,7 @@ export default function Cooperados() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
               <Input
-                placeholder="Buscar por nome, CPF ou e-mail..."
+                placeholder="Buscar por nome, código ou CNPJ..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -130,10 +133,10 @@ export default function Cooperados() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
+                  <TableHead>Código</TableHead>
                   <TableHead>Nome</TableHead>
-                  <TableHead>CPF</TableHead>
-                  <TableHead>Cooperativa</TableHead>
-                  <TableHead>E-mail</TableHead>
+                  <TableHead>CNPJ</TableHead>
+                  <TableHead>Cidade/UF</TableHead>
                   <TableHead>Telefone</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -146,24 +149,23 @@ export default function Cooperados() {
                       Carregando...
                     </TableCell>
                   </TableRow>
-                ) : filteredCooperados.length === 0 ? (
+                ) : filteredCentrais.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-slate-500">
-                      Nenhum cooperado encontrado
+                      Nenhuma central encontrada
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredCooperados.map((cooperado) => (
-                    <TableRow key={cooperado.id} className="hover:bg-slate-50">
-                      <TableCell className="font-medium">{cooperado.nome_completo}</TableCell>
-                      <TableCell className="font-mono text-sm">{cooperado.cpf}</TableCell>
-                      <TableCell className="text-sm">{getCooperativaNome(cooperado.cooperativa_id)}</TableCell>
-                      <TableCell className="text-sm">{cooperado.email}</TableCell>
-                      <TableCell className="text-sm">{cooperado.celular || cooperado.telefone}</TableCell>
+                  filteredCentrais.map((central) => (
+                    <TableRow key={central.id} className="hover:bg-slate-50">
+                      <TableCell className="font-mono font-medium">{central.codigo}</TableCell>
+                      <TableCell className="font-medium">{central.nome}</TableCell>
+                      <TableCell className="font-mono text-sm">{central.cnpj}</TableCell>
+                      <TableCell className="text-sm">{central.cidade} - {central.estado}</TableCell>
+                      <TableCell className="text-sm">{central.telefone}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className={`${statusColors[cooperado.status || 'ativo']} border`}>
-                          {cooperado.status === 'ativo' ? <UserCheck className="w-3 h-3 mr-1" /> : <UserX className="w-3 h-3 mr-1" />}
-                          {cooperado.status || 'ativo'}
+                        <Badge variant={central.ativo ? 'default' : 'secondary'} className={central.ativo ? 'bg-emerald-600' : ''}>
+                          {central.ativo ? 'Ativa' : 'Inativa'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -172,7 +174,7 @@ export default function Cooperados() {
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              setSelectedCooperado(cooperado);
+                              setSelectedCentral(central);
                               setIsDetailsOpen(true);
                             }}
                           >
@@ -182,7 +184,7 @@ export default function Cooperados() {
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              setSelectedCooperado(cooperado);
+                              setSelectedCentral(central);
                               setIsFormOpen(true);
                             }}
                           >
@@ -200,16 +202,11 @@ export default function Cooperados() {
       </Card>
 
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes do Cooperado</DialogTitle>
+            <DialogTitle>Detalhes da Central</DialogTitle>
           </DialogHeader>
-          {selectedCooperado && (
-            <CooperadoDetalhes
-              cooperado={selectedCooperado}
-              cooperativa={cooperativas.find(c => c.id === selectedCooperado.cooperativa_id)}
-            />
-          )}
+          {selectedCentral && <CentralDetalhes central={selectedCentral} />}
         </DialogContent>
       </Dialog>
     </div>

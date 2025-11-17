@@ -14,6 +14,10 @@
       "type": "string",
       "description": "CNPJ da cooperativa"
     },
+    "central_id": {
+      "type": "string",
+      "description": "ID da central"
+    },
     "tipo": {
       "type": "string",
       "enum": [

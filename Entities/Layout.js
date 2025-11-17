@@ -16,7 +16,8 @@ import {
   LogOut,
   ChevronRight,
   Building2,
-  Database
+  Database,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,18 +31,26 @@ export default function Layout({ children, currentPageName }) {
     retry: false
   });
 
-  const menuItems = [
-    { name: 'Dashboard', icon: Home, page: 'Dashboard' },
-    { name: 'Cooperados', icon: Users, page: 'Cooperados' },
-    { name: 'Cartões', icon: CreditCard, page: 'Cartoes' },
-    { name: 'Transações', icon: Receipt, page: 'Transacoes' },
-    { name: 'Faturas', icon: FileText, page: 'Faturas' },
-    { name: 'Relatórios', icon: BarChart3, page: 'Relatorios' },
-    { name: 'Cooperativas', icon: Building2, page: 'Cooperativas' },
-    { name: 'Usuários', icon: Users, page: 'Usuarios' },
-    { name: 'Configurações', icon: Settings, page: 'Configuracoes' },
-    { name: 'Gerar Dados Mock', icon: Database, page: 'GerarDadosMock' }
+  const allMenuItems = [
+    { name: 'Dashboard', icon: Home, page: 'Dashboard', roles: ['master', 'central', 'cooperativa', 'ponto_atendimento', 'admin', 'gerente', 'atendente'] },
+    { name: 'Centrais', icon: Building2, page: 'Centrais', roles: ['master'] },
+    { name: 'Cooperativas', icon: Building2, page: 'Cooperativas', roles: ['master', 'central'] },
+    { name: 'Pontos de Atendimento', icon: MapPin, page: 'PontosAtendimento', roles: ['master', 'central', 'cooperativa'] },
+    { name: 'Cooperados', icon: Users, page: 'Cooperados', roles: ['master', 'central', 'cooperativa', 'ponto_atendimento'] },
+    { name: 'Cartões', icon: CreditCard, page: 'Cartoes', roles: ['master', 'central', 'cooperativa', 'ponto_atendimento'] },
+    { name: 'Transações', icon: Receipt, page: 'Transacoes', roles: ['master', 'central', 'cooperativa', 'ponto_atendimento'] },
+    { name: 'Faturas', icon: FileText, page: 'Faturas', roles: ['master', 'central', 'cooperativa', 'ponto_atendimento'] },
+    { name: 'Relatórios', icon: BarChart3, page: 'Relatorios', roles: ['master', 'central', 'cooperativa', 'ponto_atendimento', 'admin', 'gerente'] },
+    { name: 'Usuários', icon: Users, page: 'Usuarios', roles: ['master', 'central', 'cooperativa', 'admin'] },
+    { name: 'Configurações', icon: Settings, page: 'Configuracoes', roles: ['master', 'central', 'cooperativa'] },
+    { name: 'Popular Dados', icon: Database, page: 'PopularDados', roles: ['master'] },
+    { name: 'Gerar Dados Mock', icon: Database, page: 'GerarDadosMock', roles: ['master'] }
   ];
+
+  const menuItems = allMenuItems.filter(item => {
+    if (!user || !user.perfil) return true;
+    return item.roles.includes(user.perfil);
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">

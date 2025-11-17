@@ -1,0 +1,243 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Search, Plus, Eye, Edit, MapPin } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import PontoAtendimentoForm from '../components/pontosAtendimento/PontoAtendimentoForm';
+import PontoAtendimentoDetalhes from '../components/pontosAtendimento/PontoAtendimentoDetalhes';
+
+export default function PontosAtendimento() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPonto, setSelectedPonto] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: pontos = [], isLoading } = useQuery({
+    queryKey: ['pontosAtendimento'],
+    queryFn: () => base44.entities.PontoAtendimento.list('-created_date')
+  });
+
+  const { data: cooperativas = [] } = useQuery({
+    queryKey: ['cooperativas'],
+    queryFn: () => base44.entities.Cooperativa.list()
+  });
+
+  const { data: centrais = [] } = useQuery({
+    queryKey: ['centrais'],
+    queryFn: () => base44.entities.Central.list()
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.PontoAtendimento.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pontosAtendimento']);
+      setIsFormOpen(false);
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.PontoAtendimento.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['pontosAtendimento']);
+      setIsFormOpen(false);
+      setSelectedPonto(null);
+    }
+  });
+
+  const getCooperativa = (id) => cooperativas.find(c => c.id === id);
+  const getCentral = (id) => centrais.find(c => c.id === id);
+
+  const filteredPontos = pontos.filter(p => {
+    const cooperativa = getCooperativa(p.cooperativa_id);
+    return p.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.codigo?.includes(searchTerm) ||
+      cooperativa?.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border-t-4 border-t-[#4A9B8E]">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Total de Pontos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">{pontos.length}</span>
+              <div className="p-3 rounded-xl bg-[#4A9B8E]/10">
+                <MapPin className="w-6 h-6 text-[#4A9B8E]" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-t-4 border-t-emerald-500">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-slate-600">Pontos Ativos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-slate-800">
+                {pontos.filter(p => p.ativo).length}
+              </span>
+              <div className="p-3 rounded-xl bg-emerald-50">
+                <MapPin className="w-6 h-6 text-emerald-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-t-4 border-t-[#4A9B8E]">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-2xl">Pontos de Atendimento</CardTitle>
+              <p className="text-sm text-slate-500 mt-1">Gestão de pontos de atendimento</p>
+            </div>
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#4A9B8E] hover:bg-[#3A7B6E]" onClick={() => setSelectedPonto(null)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Ponto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{selectedPonto ? 'Editar Ponto' : 'Novo Ponto de Atendimento'}</DialogTitle>
+                </DialogHeader>
+                <PontoAtendimentoForm
+                  ponto={selectedPonto}
+                  cooperativas={cooperativas}
+                  centrais={centrais}
+                  onSubmit={(data) => {
+                    if (selectedPonto) {
+                      updateMutation.mutate({ id: selectedPonto.id, data });
+                    } else {
+                      createMutation.mutate(data);
+                    }
+                  }}
+                  onCancel={() => {
+                    setIsFormOpen(false);
+                    setSelectedPonto(null);
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <Input
+                placeholder="Buscar por código, nome ou cooperativa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Cooperativa</TableHead>
+                  <TableHead>Central</TableHead>
+                  <TableHead>Cidade/UF</TableHead>
+                  <TableHead>Responsável</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                      Carregando...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredPontos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8 text-slate-500">
+                      Nenhum ponto de atendimento encontrado
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredPontos.map((ponto) => {
+                    const cooperativa = getCooperativa(ponto.cooperativa_id);
+                    const central = getCentral(ponto.central_id);
+
+                    return (
+                      <TableRow key={ponto.id} className="hover:bg-slate-50">
+                        <TableCell className="font-mono font-medium">{ponto.codigo}</TableCell>
+                        <TableCell className="font-medium">{ponto.nome}</TableCell>
+                        <TableCell className="text-sm">{cooperativa?.nome || 'N/A'}</TableCell>
+                        <TableCell className="text-sm">{central?.nome || 'N/A'}</TableCell>
+                        <TableCell className="text-sm">{ponto.cidade} - {ponto.estado}</TableCell>
+                        <TableCell className="text-sm">{ponto.responsavel || '-'}</TableCell>
+                        <TableCell>
+                          <Badge variant={ponto.ativo ? 'default' : 'secondary'} className={ponto.ativo ? 'bg-emerald-600' : ''}>
+                            {ponto.ativo ? 'Ativo' : 'Inativo'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPonto(ponto);
+                                setIsDetailsOpen(true);
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedPonto(ponto);
+                                setIsFormOpen(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Ponto de Atendimento</DialogTitle>
+          </DialogHeader>
+          {selectedPonto && (
+            <PontoAtendimentoDetalhes
+              ponto={selectedPonto}
+              cooperativa={getCooperativa(selectedPonto.cooperativa_id)}
+              central={getCentral(selectedPonto.central_id)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

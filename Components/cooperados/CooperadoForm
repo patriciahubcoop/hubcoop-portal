@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export default function CooperadoForm({ cooperado, cooperativas, onSubmit, onCancel }) {
+export default function CooperadoForm({ cooperado, cooperativas, centrais, pontosAtendimento, onSubmit, onCancel }) {
   const [formData, setFormData] = useState(cooperado || {
     cpf: '',
     nome_completo: '',
@@ -22,14 +22,25 @@ export default function CooperadoForm({ cooperado, cooperativas, onSubmit, onCan
     cidade: '',
     estado: '',
     cep: '',
+    central_id: '',
     cooperativa_id: '',
+    ponto_atendimento_id: '',
     conta_corrente: '',
     status: 'ativo'
   });
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+
+    if (field === 'cooperativa_id') {
+      const cooperativa = cooperativas.find(c => c.id === value);
+      if (cooperativa && cooperativa.central_id) {
+        setFormData(prev => ({ ...prev, central_id: cooperativa.central_id }));
+      }
+    }
   };
+
+  const pontosFiltrados = pontosAtendimento?.filter(p => p.cooperativa_id === formData.cooperativa_id) || [];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -134,6 +145,20 @@ export default function CooperadoForm({ cooperado, cooperativas, onSubmit, onCan
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="central_id">Central</Label>
+          <Select value={formData.central_id} onValueChange={(value) => handleChange('central_id', value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              {centrais?.map(central => (
+                <SelectItem key={central.id} value={central.id}>{central.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="cooperativa_id">Cooperativa</Label>
           <Select value={formData.cooperativa_id} onValueChange={(value) => handleChange('cooperativa_id', value)}>
             <SelectTrigger>
@@ -143,6 +168,24 @@ export default function CooperadoForm({ cooperado, cooperativas, onSubmit, onCan
               {cooperativas.map(coop => (
                 <SelectItem key={coop.id} value={coop.id}>{coop.nome}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ponto_atendimento_id">Ponto de Atendimento</Label>
+          <Select value={formData.ponto_atendimento_id} onValueChange={(value) => handleChange('ponto_atendimento_id', value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione..." />
+            </SelectTrigger>
+            <SelectContent>
+              {pontosFiltrados.length > 0 ? (
+                pontosFiltrados.map(ponto => (
+                  <SelectItem key={ponto.id} value={ponto.id}>{ponto.codigo} - {ponto.nome}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>Selecione uma cooperativa primeiro</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>

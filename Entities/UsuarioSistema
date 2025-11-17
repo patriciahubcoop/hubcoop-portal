@@ -11,9 +11,17 @@
     "email_corporativo": {
       "type": "string"
     },
+    "central_id": {
+      "type": "string",
+      "description": "ID da central vinculada"
+    },
     "cooperativa_id": {
       "type": "string",
       "description": "ID da cooperativa vinculada"
+    },
+    "ponto_atendimento_id": {
+      "type": "string",
+      "description": "ID do ponto de atendimento vinculado"
     },
     "grupo_atendimento": {
       "type": "string",
@@ -22,6 +30,10 @@
     "perfil": {
       "type": "string",
       "enum": [
+        "master",
+        "central",
+        "cooperativa",
+        "ponto_atendimento",
         "admin",
         "gerente",
         "atendente",

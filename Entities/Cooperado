@@ -59,9 +59,17 @@
     "cep": {
       "type": "string"
     },
+    "central_id": {
+      "type": "string",
+      "description": "ID da central"
+    },
     "cooperativa_id": {
       "type": "string",
       "description": "ID da cooperativa"
+    },
+    "ponto_atendimento_id": {
+      "type": "string",
+      "description": "ID do ponto de atendimento"
     },
     "conta_corrente": {
       "type": "string",

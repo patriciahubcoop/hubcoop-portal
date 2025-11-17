@@ -23,6 +23,11 @@ export default function Cooperativas() {
     queryFn: () => base44.entities.Cooperativa.list('-created_date')
   });
 
+  const { data: centrais = [] } = useQuery({
+    queryKey: ['centrais'],
+    queryFn: () => base44.entities.Central.list()
+  });
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Cooperativa.create(data),
     onSuccess: () => {
@@ -136,6 +141,7 @@ export default function Cooperativas() {
                 </DialogHeader>
                 <CooperativaForm
                   cooperativa={selectedCooperativa}
+                  centrais={centrais}
                   onSubmit={(data) => {
                     if (selectedCooperativa) {
                       updateMutation.mutate({ id: selectedCooperativa.id, data });
