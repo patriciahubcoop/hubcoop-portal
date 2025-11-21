@@ -90,9 +90,6 @@ const HUB_BRAND_COLOR = '#3E807D';
 // =======================================================================
 // DADOS GLOBAIS DO SISTEMA (USUÁRIOS MOCK, CENTRAIS, COOPERATIVAS, PONTOS)
  // =======================================================================
-// =======================================================================
-// DADOS GLOBAIS DO USUÁRIO E CENTRAIS (Refatorado para Multi-Login)
-// =======================================================================
 
 // 1. Novo Tipo de Usuário
 type UserProfile = 'Master' | 'Central' | 'Cooperativa' | 'PA';
@@ -318,20 +315,12 @@ function LoginButton({ onClick, perfil, email }: { onClick: () => void; perfil: 
   );
 }
 
-// =======================================================================
-// 4. O Layout Principal do Dashboard (Pós-Login) - CORRIGIDO
-// =======================================================================
+// ====================================
+// 4. O Layout Principal do Dashboard 
+// ====================================
 function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario: User }) {
   const [activePage, setActivePage] = useState(usuario.perfil === 'Master' ? 'Configuracoes' : 'Dashboard');
-{activePage === 'Loyalty' && <PaginaLoyalty usuario={usuario} />}
-{activePage === 'SalaVIP' && <PaginaSalaVIP usuario={usuario} />}
-{activePage !== 'Dashboard' && usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa' || usuario.perfil === 'PA'
- activePage !== 'Loyalty' && usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa' || usuario.perfil === 'PA'
- activePage !== 'SalaVIP' && usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa' || usuario.perfil === 'PA'
- (
-  <PaginaPlaceholder pageName={activePage} />
-)}
-  
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* 4.1. Menu Lateral (Sidebar) */}
@@ -343,161 +332,95 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
           <h1 className="text-3xl font-bold">Hubcoop</h1>
         </div>
         
-        {/* 4.2. Menu Reorganizado e Segregado */}
-        <nav className="flex-1 p-4 space-y-2">
-          {/* Links visíveis para todos, exceto Master */}
+        {/* 4.2. Menu de Navegação Principal */}
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto custom-scrollbar">
+          {/* Links visíveis para todos, EXCETO Master */}
           {usuario.perfil !== 'Master' && (
             <>
-              <SidebarLink
-                text="Dashboard"
-                icon={<Home size={20} />}
-                active={activePage === 'Dashboard'}
-                onClick={() => setActivePage('Dashboard')}
-              />
-              <SidebarLink
-                text="Cooperados"
-                icon={<Users2 size={20} />}
-                active={activePage === 'Cooperados'}
-                onClick={() => setActivePage('Cooperados')}
-              />
-              <SidebarLink
-                text="Cartões"
-                icon={<CreditCard size={20} />}
-                active={activePage === 'Cartoes'}
-                onClick={() => setActivePage('Cartoes')}
-              />
-              <SidebarLink
-                text="Transações"
-                icon={<DollarSign size={20} />}
-                active={activePage === 'Transacoes'}
-                onClick={() => setActivePage('Transacoes')}
-              />
-              <SidebarLink
-                text="Faturas"
-                icon={<FileText size={20} />}
-                active={activePage === 'Faturas'}
-                onClick={() => setActivePage('Faturas')}
-              />
-              <SidebarLink
-                text="Relatórios"
-                icon={<BarChart3 size={20} />}
-                active={activePage === 'Relatorios'}
-                onClick={() => setActivePage('Relatorios')}
-              />
-              {/* Item: Loyalty (Pontos) */}
-<SidebarLink
-  text="Loyalty (Pontos)"
-  icon={<Gift size={20} />}
-  active={activePage === 'Loyalty'}
-  onClick={() => setActivePage('Loyalty')}
-/>
-
-{/* Item: Sala VIP */}
-<SidebarLink
-  text="Sala VIP"
-  icon={<Armchair size={20} />}
-  active={activePage === 'SalaVIP'}
-  onClick={() => setActivePage('SalaVIP')}
-/>
+              <SidebarLink text="Dashboard" icon={<Home size={18} />} active={activePage === 'Dashboard'} onClick={() => setActivePage('Dashboard')} />
+              <SidebarLink text="Cooperados" icon={<Users2 size={18} />} active={activePage === 'Cooperados'} onClick={() => setActivePage('Cooperados')} />
+              <SidebarLink text="Cartões" icon={<CreditCard size={18} />} active={activePage === 'Cartoes'} onClick={() => setActivePage('Cartoes')} />
+              <SidebarLink text="Transações" icon={<DollarSign size={18} />} active={activePage === 'Transacoes'} onClick={() => setActivePage('Transacoes')} />
+              <SidebarLink text="Faturas" icon={<FileText size={18} />} active={activePage === 'Faturas'} onClick={() => setActivePage('Faturas')} />
+              <SidebarLink text="Relatórios" icon={<BarChart3 size={18} />} active={activePage === 'Relatorios'} onClick={() => setActivePage('Relatorios')} />
+              <SidebarLink text="Loyalty (Pontos)" icon={<Gift size={18} />} active={activePage === 'Loyalty'} onClick={() => setActivePage('Loyalty')} />
+              <SidebarLink text="Sala VIP" icon={<Armchair size={18} />} active={activePage === 'SalaVIP'} onClick={() => setActivePage('SalaVIP')} />
             </>
           )}
 
-          {/* "Cooperativas" é visível para Central e Cooperativa, mas não PA ou Master */}
+          {/* "Cooperativas" - Apenas Central e Cooperativa */}
           {(usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa') && (
-            <SidebarLink
-              text="Cooperativas"
-              icon={<Building size={20} />}
-              active={activePage === 'Cooperativas'}
-              onClick={() => setActivePage('Cooperativas')}
-            />
+            <SidebarLink text="Cooperativas" icon={<Building size={18} />} active={activePage === 'Cooperativas'} onClick={() => setActivePage('Cooperativas')} />
           )}
 
-          {/* "Usuários" é visível apenas para Central */}
+          {/* "Usuários" - Apenas Central */}
           {usuario.perfil === 'Central' && (
-            <SidebarLink
-              text="Usuários"
-              icon={<Users size={20} />}
-              active={activePage === 'Usuarios'}
-              onClick={() => setActivePage('Usuarios')}
-            />
-          )}
-          
-          {/* "Configurações" é visível para todos, exceto PA */}
-          { (
-            <SidebarLink
-              text="Configurações"
-              icon={<Settings size={20} />}
-              active={activePage === 'Configuracoes'}
-              onClick={() => setActivePage('Configuracoes')}
-            />
+            <SidebarLink text="Usuários" icon={<Users size={18} />} active={activePage === 'Usuarios'} onClick={() => setActivePage('Usuarios')} />
           )}
         </nav>
 
-        <div className="p-4 border-t border-white border-opacity-30">
+        {/* 4.3. Rodapé do Menu (Configurações e Sair) */}
+        <div className="p-2 border-t border-white border-opacity-20 space-y-1">
+          {/* Configurações agora fica fixo embaixo */}
           <SidebarLink
-            text="Sair"
-            icon={<LogOut size={20} />}
-            active={false}
+            text="Configurações"
+            icon={<Settings size={18} />}
+            active={activePage === 'Configuracoes'}
+            onClick={() => setActivePage('Configuracoes')}
+          />
+          <SidebarLink 
+            text="Sair" 
+            icon={<LogOut size={18} />} 
+            active={false}  
             onClick={onLogout}
           />
         </div>
       </aside>
 
-      {/* 4.3. Conteúdo Principal (Direita) */}
+      {/* Conteúdo Principal (Direita) - Mantido Igual */}
       <div className="flex flex-col flex-1">
-        {/* Cabeçalho Superior (agora usa o user global) */}
         <header className="flex items-center justify-between h-20 px-6 bg-white shadow-md">
           <h2 className="text-3xl font-semibold text-gray-700">
-            {activePage} {/* O título é a página ativa */}
+            {activePage === 'Loyalty' ? 'Loyalty (Pontos)' : activePage}
           </h2>
           <div className="text-right">
             <div className="flex items-center space-x-6">
-  {/* Bloco de Data/Hora (NOVO) */}
-  <div className="text-right">
-    <div className="text-sm font-semibold text-gray-700">
-      Última atualização:
-    </div>
-    <div className="text-xs text-gray-500">
-      17/11/2025 16:30:00
-      {/* Em um app real, isso viria de um estado ou API */}
-    </div>
-  </div>
-
-  {/* Bloco de Informações do Usuário */}
-  <div className="text-right">
-    <div className="font-semibold text-gray-800">
-      {usuario.nome}
-    </div>
-    <div className="text-sm text-gray-500">
-      {/* Mostra o perfil e a central/coop/pa */}
-      {usuario.perfil}
-      {usuario.centralId && ` | Central: ${mockCentrais.find(c => c.id === usuario.centralId)?.nome}`}
-    </div>
-  </div>
-</div>
-</div>
+              <div className="text-right hidden md:block">
+                <div className="text-sm font-semibold text-gray-700">Última atualização:</div>
+                <div className="text-xs text-gray-500">17/11/2025 16:30:00</div>
+              </div>
+              <div className="text-right">
+                <div className="font-semibold text-gray-800">{usuario.nome}</div>
+                <div className="text-sm text-gray-500">
+                  {usuario.perfil}
+                  {usuario.centralId && ` | Central: ${mockCentrais.find(c => c.id === usuario.centralId)?.nome}`}
+                </div>
+              </div>
+            </div>
+          </div>
         </header>
 
-        {/* --- ÁREA DE CONTEÚDO CORRIGIDA --- */}
-
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto bg-gray-100">
           {activePage === 'Dashboard' && <PaginaDashboard usuario={usuario} />}
           {activePage === 'Cooperados' && <PaginaCooperados usuario={usuario} />}
           {activePage === 'Cartoes' && <PaginaCartoes usuario={usuario} />}
           {activePage === 'Transacoes' && <PaginaTransacoes usuario={usuario} />}
           {activePage === 'Faturas' && <PaginaFaturas usuario={usuario} />}
           {activePage === 'Relatorios' && <PaginaRelatorios usuario={usuario} />}
+          {activePage === 'Loyalty' && <PaginaLoyalty usuario={usuario} />}
+          {activePage === 'SalaVIP' && <PaginaSalaVIP usuario={usuario} />}
           {activePage === 'Cooperativas' && <PaginaCooperativas usuario={usuario} />} 
           {activePage === 'Usuarios' && <PaginaUsuarios usuario={usuario} />}
           {activePage === 'Configuracoes' && <PaginaConfiguracoes usuario={usuario} />}
           
-          {/* Placeholder para as outras páginas */}
           {activePage !== 'Dashboard' && 
            activePage !== 'Cooperados' && 
            activePage !== 'Cartoes' && 
            activePage !== 'Transacoes' && 
            activePage !== 'Faturas' && 
            activePage !== 'Relatorios' &&
+           activePage !== 'Loyalty' &&
+           activePage !== 'SalaVIP' &&
            activePage !== 'Cooperativas' &&
            activePage !== 'Usuarios' &&
            activePage !== 'Configuracoes' && (
@@ -508,7 +431,6 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
     </div>
   );
 }
-
 // =======================================================================
 // 5. Componente auxiliar para os Links do Menu (Sem alterações)
 // =======================================================================
@@ -519,21 +441,20 @@ interface SidebarLinkProps {
   onClick: () => void;
 }
 function SidebarLink({ text, icon, active, onClick }: SidebarLinkProps) {
-  // ... (código idêntico)
   return (
     <button
       onClick={onClick}
       className={`
-        flex items-center w-full px-3 py-3 space-x-3 text-left rounded-lg transition-all duration-200
+        flex items-center w-full px-3 py-2 space-x-3 text-left rounded-lg transition-all duration-200 text-sm
         ${
           active
-            ? 'bg-teal-800 font-semibold'
-            : 'hover:bg-white hover:bg-opacity-10'
+            ? 'bg-teal-800 font-semibold shadow-md'
+            : 'hover:bg-white hover:bg-opacity-10 opacity-90 hover:opacity-100'
         }
       `}
     >
       {icon}
-      <span>{text}</span>
+      <span className="truncate">{text}</span>
     </button>
   );
 }
@@ -542,7 +463,6 @@ function SidebarLink({ text, icon, active, onClick }: SidebarLinkProps) {
 // 6. Placeholder para páginas futuras (Sem alterações)
 // =======================================================================
 function PaginaPlaceholder({ pageName }: { pageName: string }) {
-  // ... (código idêntico)
   return (
     <div className="p-8 bg-white rounded-xl shadow-lg">
       <h3 className="text-2xl font-semibold">
@@ -971,7 +891,7 @@ function ListaCooperados({ cooperados, searchTerm, setSearchTerm, onSelect }: Li
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">E-mail</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Telefone</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visualizar</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -989,12 +909,14 @@ function ListaCooperados({ cooperados, searchTerm, setSearchTerm, onSelect }: Li
                     {cooperado.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                  <button onClick={() => onSelect(cooperado)} className="text-hub-teal hover:text-hub-teal-dark p-1">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  {/* REMOVIDO O BOTÃO DE LIXEIRA, MANTEVE APENAS O OLHO */}
+                  <button 
+                    onClick={() => onSelect(cooperado)} 
+                    className="text-hub-teal hover:text-hub-teal-dark p-2 bg-teal-50 rounded-full hover:bg-teal-100 transition-colors"
+                    title="Visualizar Detalhes"
+                  >
                     <Eye className="w-5 h-5" />
-                  </button>
-                  <button className="text-red-400 hover:text-red-600 p-1">
-                    <Trash2 className="w-5 h-5" />
                   </button>
                 </td>
               </tr>
@@ -1610,7 +1532,6 @@ function SubMenuButton({ label, active, onClick }: { label: string; active: bool
 
 // --- View 1: Lista Principal ---
 function ViewListaPrincipalCartoes({ kpis, cartoes }: { kpis: typeof mockKpiCartoes; cartoes: Cartao[] }) {
-  // ... (código idêntico)
   const [filtroTabela, setFiltroTabela] = useState('todos');
   
   const cartoesFiltrados = cartoes.filter(c => {
@@ -1666,7 +1587,7 @@ function ViewListaPrincipalCartoes({ kpis, cartoes }: { kpis: typeof mockKpiCart
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Limite</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validade</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                {/* CORREÇÃO: Apenas UMA coluna de ação */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visualizar</th>
               </tr>
             </thead>
@@ -1692,7 +1613,7 @@ function ViewListaPrincipalCartoes({ kpis, cartoes }: { kpis: typeof mockKpiCart
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-hub-teal hover:text-hub-teal-dark p-1">
+                    <button className="text-hub-teal hover:text-hub-teal-dark p-2 bg-teal-50 rounded-full hover:bg-teal-100 transition-colors">
                       <Eye className="w-5 h-5" />
                     </button>
                   </td>
@@ -2313,17 +2234,9 @@ function ViewFormContestacao() {
 }
 
 // =======================================================================
-// 12. A PÁGINA DE FATURAS (COM PROP DE USUÁRIO)
+// DADOS MOCKADOS DE FATURAS (RESTAURADOS)
 // =======================================================================
-/* ... (Todo o código da PaginaFaturas e seus sub-componentes continua o mesmo) ... */
-// --- Definição de Tipos para Faturas ---
-type KpiFaturas = {
-  total: number;
-  abertas: number;
-  vencidas: number;
-  aReceber: number;
-};
-type FaturaStatus = 'aberta' | 'paga' | 'vencida';
+
 type Fatura = {
   id: number;
   cooperado: string;
@@ -2331,29 +2244,32 @@ type Fatura = {
   vencimento: string;
   valorTotal: number;
   valorPago: number;
-  diasAtraso: number | null;
-  status: FaturaStatus;
+  diasAtraso?: number;
+  status: 'aberta' | 'paga' | 'vencida';
 };
 
-// --- Dados Mockados da Página Faturas ---
-const mockKpiFaturas: KpiFaturas = {
+const mockKpiFaturas = {
   total: 6,
   abertas: 6,
   vencidas: 0,
-  aReceber: 7000,
+  aReceber: 7000.00,
 };
+
 const mockListaDeFaturas: Fatura[] = [
-  { id: 1, cooperado: 'Fernanda Lima Santos', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, diasAtraso: null, status: 'aberta' },
-  { id: 2, cooperado: 'Carlos Eduardo Souza', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, diasAtraso: null, status: 'aberta' },
-  { id: 3, cooperado: 'Ana Paula Ferreira', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, diasAtraso: null, status: 'aberta' },
-  { id: 4, cooperado: 'João Pedro Costa', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, diasAtraso: null, status: 'aberta' },
-  { id: 5, cooperado: 'Maria Santos Oliveira', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, diasAtraso: null, status: 'aberta' },
-  { id: 6, cooperado: 'Daniel Oliveira Silva', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, diasAtraso: null, status: 'aberta' },
+  { id: 1, cooperado: 'Fernanda Lima Santos', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, status: 'aberta' },
+  { id: 2, cooperado: 'Carlos Eduardo Souza', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, status: 'aberta' },
+  { id: 3, cooperado: 'Ana Paula Ferreira', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, status: 'aberta' },
+  { id: 4, cooperado: 'João Pedro Costa', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, status: 'aberta' },
+  { id: 5, cooperado: 'Maria Santos Oliveira', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1150.00, valorPago: 0.00, status: 'aberta' },
+  { id: 6, cooperado: 'Daniel Oliveira Silva', referencia: '11/2025', vencimento: '24/11/2025', valorTotal: 1250.00, valorPago: 0.00, status: 'aberta' },
 ];
 
-// --- Componente PAI da Página Faturas ---
+
+// =======================================================================
+// 12. A PÁGINA DE FATURAS
+// =======================================================================
+
 function PaginaFaturas({ usuario }: { usuario: User }) {
-  // ... (código idêntico)
   return (
     <div className="space-y-6">
       {/* KPIs */}
@@ -2399,7 +2315,7 @@ function PaginaFaturas({ usuario }: { usuario: User }) {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Pago</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dias Atraso</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                {/* REMOVIDO: Coluna Ações */}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -2426,44 +2342,13 @@ function PaginaFaturas({ usuario }: { usuario: User }) {
                       {fatura.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-hub-teal hover:text-hub-teal-dark p-1">
-                      <Eye className="w-5 h-5" />
-                    </button>
-                  </td>
+                  {/* REMOVIDO: Célula de Ações */}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
-  );
-}
-
-// --- Componente auxiliar para o Dropdown de Exportar ---
-function ExportarDropdown() {
-  // ... (código idêntico)
-  const [exportOpen, setExportOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setExportOpen(!exportOpen)}
-        onBlur={() => setTimeout(() => setExportOpen(false), 150)}
-        className="flex-shrink-0 flex items-center px-4 py-2 text-white rounded-lg shadow-sm transition-colors"
-        style={{ backgroundColor: HUB_BRAND_COLOR }}
-      >
-        <FileDown className="w-5 h-5 mr-2" />
-        Exportar
-        <ChevronDown className="w-4 h-4 ml-1" />
-      </button>
-      {exportOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-          <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Exportar CSV</a>
-          <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Exportar XLS</a>
-          <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Exportar PDF</a>
-        </div>
-      )}
     </div>
   );
 }
@@ -2615,7 +2500,7 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
           {/* Filtro de CPF (Para Todos) */}
           <div>
             <label className="block text-sm font-medium text-gray-700">CPF</label>
-            <input type="text" placeholder="000.000.000-00" or "00.000.000/0000-00" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+            <input type="text" placeholder="000.000.000-00" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
           </div>
 
           {/* Filtro de Cooperativa (SÓ CENTRAL VÊ) */}
@@ -2889,17 +2774,7 @@ function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, 
               />
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             </div>
-            {/* O botão "Nova Cooperativa" só aparece se você for admin de uma central */}
-            {usuario.perfil === 'Central' && (
-              <button
-                onClick={onNovaCooperativa}
-                className="flex-shrink-0 flex items-center px-4 py-2 text-white rounded-lg shadow-sm transition-colors"
-                style={{ backgroundColor: HUB_BRAND_COLOR }}
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Nova Cooperativa
-              </button>
-            )}
+            {/* BOTÃO "NOVA COOPERATIVA" REMOVIDO DAQUI CONFORME SOLICITADO */}
           </div>
         </div>
 
@@ -2912,17 +2787,17 @@ function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, 
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CNPJ</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Limite Outorgado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Limite Utilizado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lim. Outorgado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lim. Utilizado</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% Uso</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visualizar</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {cooperativas.map((coop) => {
                 const percUso = (coop.limiteOutorgado > 0) ? (coop.limiteUtilizado / coop.limiteOutorgado) * 100 : 0;
-                const usoCor = percUso > 75 ? 'bg-orange-400' : percUso > 50 ? 'bg-green-500' : 'bg-green-500';
+                const usoCor = percUso > 75 ? 'bg-orange-400' : percUso > 50 ? 'bg-yellow-400' : 'bg-green-500';
                 return (
                   <tr key={coop.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{coop.codigo}</td>
@@ -2933,23 +2808,24 @@ function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-semibold">{coop.limiteUtilizado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center">
-                        <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
-                          <div className={`h-2 rounded-full ${usoCor}`} style={{ width: `${percUso}%`}}></div>
+                        <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                          <div className={`h-2 rounded-full ${usoCor}`} style={{ width: `${Math.min(percUso, 100)}%`}}></div>
                         </div>
-                        {percUso.toFixed(1)}%
+                        {percUso.toFixed(0)}%
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2.5 py-0.5 inline-flex text-xs font-semibold rounded-full ${coop.status === 'Ativa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      <span className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full ${coop.status === 'Ativa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {coop.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                      <button onClick={() => onSelect(coop)} className="text-hub-teal hover:text-hub-teal-dark p-1">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button 
+                        onClick={() => onSelect(coop)} 
+                        className="text-hub-teal hover:text-hub-teal-dark p-2 bg-teal-50 rounded-full hover:bg-teal-100 transition-colors"
+                        title="Visualizar Detalhes"
+                      >
                         <Eye className="w-5 h-5" />
-                      </button>
-                      <button className="text-gray-400 hover:text-gray-600 p-1">
-                        <Edit2 className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
@@ -3691,26 +3567,23 @@ function ListaEdicaoUsuarios({ usuario }: { usuario: User }) {
   );
 }
 // =======================================================================
-// 17. PÁGINA DE LOYALTY (PONTOS)
+// 17. PÁGINA DE LOYALTY (PONTOS) - CORRIGIDA E EXPANDIDA
 // =======================================================================
 
-// Tipos
-type ItemLoyalty = { id: number; nome: string; custoPontos: number; categoria: string };
+type ItemLoyalty = { id: number; nome: string; custoPontos: number; categoria: string; limitePorResgate?: number };
 type SolicitacaoPontos = { id: number; cooperado: string; cpf: string; produto: string; pontos: number; item: string; data: string; status: 'pendente' | 'aprovado' };
 type ConfigValidade = { produto: string; validadeMeses: number };
 
-// Mocks
 const mockItensLoyalty: ItemLoyalty[] = [
-  { id: 1, nome: 'Voucher iFood R$ 50', custoPontos: 3000, categoria: 'Voucher' },
-  { id: 2, nome: 'Voucher Uber R$ 50', custoPontos: 3000, categoria: 'Voucher' },
-  { id: 3, nome: 'Aporte Capital Social', custoPontos: 5000, categoria: 'Investimento' },
-  { id: 4, nome: 'Aporte Previdência', custoPontos: 10000, categoria: 'Previdência' },
-  { id: 5, nome: 'Transferência Miles (1k)', custoPontos: 2000, categoria: 'Milhas' },
+  { id: 1, nome: 'Voucher iFood', custoPontos: 3000, categoria: 'Voucher', limitePorResgate: 5 },
+  { id: 2, nome: 'Voucher Uber', custoPontos: 3000, categoria: 'Voucher', limitePorResgate: 5 },
+  { id: 3, nome: 'Aporte Capital Social', custoPontos: 100, categoria: 'Investimento', limitePorResgate: 100000 }, // 100 pts = 1 real (exemplo)
+  { id: 4, nome: 'Aporte Previdência', custoPontos: 100, categoria: 'Previdência', limitePorResgate: 100000 },
+  { id: 5, nome: 'Transferência Miles', custoPontos: 1, categoria: 'Milhas', limitePorResgate: 50000 },
 ];
 
 const mockSolicitacoesLoyalty: SolicitacaoPontos[] = [
-  { id: 1, cooperado: 'Ana Beatriz Silva', cpf: '123.456.789-00', produto: 'Visa Infinite', pontos: 5000, item: 'Aporte Capital Social', data: '17/11/2025', status: 'pendente' },
-  { id: 2, cooperado: 'Roberto L. Souza', cpf: '987.654.321-11', produto: 'Visa Gold', pontos: 3000, item: 'Voucher iFood', data: '16/11/2025', status: 'pendente' },
+  { id: 1, cooperado: 'Ana Beatriz Silva', cpf: '123.456.789-00', produto: 'Visa Infinite', pontos: 15000, item: 'Aporte Capital Social', data: '17/11/2025', status: 'pendente' },
 ];
 
 const mockConfigValidade: ConfigValidade[] = [
@@ -3725,32 +3598,15 @@ function PaginaLoyalty({ usuario }: { usuario: User }) {
 
   return (
     <div className="space-y-6">
-      {/* Menu Superior Interno */}
       <div className="flex space-x-2 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('catalogo')}
-          className={`px-4 py-3 text-sm font-medium ${activeTab === 'catalogo' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}
-        >
-          Catálogo de Recompensas
-        </button>
-        {/* Apenas a Central vê as autorizações */}
+        <button onClick={() => setActiveTab('catalogo')} className={`px-4 py-3 text-sm font-medium ${activeTab === 'catalogo' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}>Catálogo & Regras</button>
+        {/* Autorizações visível para Central */}
         {usuario.perfil === 'Central' && (
-          <button
-            onClick={() => setActiveTab('autorizacoes')}
-            className={`px-4 py-3 text-sm font-medium ${activeTab === 'autorizacoes' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}
-          >
-            Autorizações Pendentes
-          </button>
+          <button onClick={() => setActiveTab('autorizacoes')} className={`px-4 py-3 text-sm font-medium ${activeTab === 'autorizacoes' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}>Autorizações Pendentes</button>
         )}
-        <button
-          onClick={() => setActiveTab('configuracoes')}
-          className={`px-4 py-3 text-sm font-medium ${activeTab === 'configuracoes' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}
-        >
-          Configurações e Validade
-        </button>
+        <button onClick={() => setActiveTab('configuracoes')} className={`px-4 py-3 text-sm font-medium ${activeTab === 'configuracoes' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}>Validade & Parametrização</button>
       </div>
 
-      {/* Conteúdo das Abas */}
       {activeTab === 'catalogo' && <ViewCatalogoLoyalty />}
       {activeTab === 'autorizacoes' && <ViewAutorizacoesLoyalty />}
       {activeTab === 'configuracoes' && <ViewConfigLoyalty />}
@@ -3759,34 +3615,58 @@ function PaginaLoyalty({ usuario }: { usuario: User }) {
 }
 
 function ViewCatalogoLoyalty() {
+  // Simulação de adicionar novo item
+  const [showForm, setShowForm] = useState(false);
+
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-semibold text-gray-800">Itens de Troca</h3>
-          <p className="text-sm text-gray-500">Defina os itens disponíveis e o custo em pontos.</p>
+          <h3 className="text-xl font-semibold text-gray-800">Itens de Recompensa</h3>
+          <p className="text-sm text-gray-500">Gerencie os itens disponíveis para troca e seus custos.</p>
         </div>
-        <button className="flex items-center px-4 py-2 text-white rounded-lg shadow-sm" style={{ backgroundColor: HUB_BRAND_COLOR }}>
-          <Plus className="w-5 h-5 mr-2" /> Novo Item
+        <button 
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center px-4 py-2 text-white rounded-lg shadow-sm" style={{ backgroundColor: HUB_BRAND_COLOR }}>
+          <Plus className="w-5 h-5 mr-2" /> Cadastrar Novo Item
         </button>
       </div>
+
+      {showForm && (
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 animate-fade-in">
+          <h4 className="font-semibold mb-3 text-gray-700">Novo Item de Catálogo</h4>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input type="text" placeholder="Nome do Item (Ex: Voucher Uber)" className="px-3 py-2 border rounded-md" />
+            <select className="px-3 py-2 border rounded-md">
+              <option>Selecione Categoria</option>
+              <option>Voucher</option>
+              <option>Capital Social</option>
+              <option>Previdência</option>
+              <option>Milhas</option>
+            </select>
+            <input type="number" placeholder="Custo em Pontos" className="px-3 py-2 border rounded-md" />
+            <button className="bg-green-600 text-white rounded-md px-4 py-2">Salvar Item</button>
+          </div>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {mockItensLoyalty.map(item => (
-          <div key={item.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-start">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                {item.categoria === 'Voucher' && <Gift className="w-6 h-6 text-orange-500" />}
-                {item.categoria === 'Milhas' && <Plane className="w-6 h-6 text-blue-500" />}
-                {item.categoria === 'Investimento' && <TrendingUp className="w-6 h-6 text-green-500" />}
-                {item.categoria === 'Previdência' && <ShieldAlert className="w-6 h-6 text-purple-500" />}
-              </div>
-              <span className="text-xs font-semibold bg-gray-100 px-2 py-1 rounded-full text-gray-600">{item.categoria}</span>
+          <div key={item.id} className="bg-white border rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-2">
+              <span className="px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded-full">{item.categoria}</span>
+              <button className="text-hub-teal hover:text-hub-teal-dark text-sm font-medium">Editar</button>
             </div>
-            <h4 className="mt-3 font-semibold text-gray-800">{item.nome}</h4>
-            <p className="text-sm text-gray-500 mt-1">Custo: <span className="font-bold text-hub-teal">{item.custoPontos.toLocaleString()} pts</span></p>
-            <div className="mt-4 flex space-x-2">
-              <button className="flex-1 py-1.5 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50">Editar</button>
+            <h4 className="text-lg font-bold text-gray-800">{item.nome}</h4>
+            <div className="mt-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Custo:</span>
+                <span className="font-semibold">{item.custoPontos.toLocaleString()} pts</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Limite de Uso:</span>
+                <span className="font-semibold">{item.limitePorResgate ? item.limitePorResgate.toLocaleString() : 'Ilimitado'}</span>
+              </div>
             </div>
           </div>
         ))}
@@ -3799,8 +3679,8 @@ function ViewAutorizacoesLoyalty() {
   return (
     <div className="bg-white rounded-xl shadow-lg">
       <div className="p-5 border-b border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800">Autorizações de Uso de Pontos</h3>
-        <p className="text-sm text-gray-500">Aprovação centralizada para resgates acima do limite.</p>
+        <h3 className="text-xl font-semibold text-gray-800">Autorizações Pendentes</h3>
+        <p className="text-sm text-gray-500">Aprovação de uso de pontos acima do limite automático.</p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-max">
@@ -3809,8 +3689,8 @@ function ViewAutorizacoesLoyalty() {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Data</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Cooperado</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Produto</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Resgate</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Pontos</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitação</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Total Pontos</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Ação</th>
             </tr>
           </thead>
@@ -3823,11 +3703,14 @@ function ViewAutorizacoesLoyalty() {
                   <span className="text-xs text-gray-400">{sol.cpf}</span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">{sol.produto}</td>
-                <td className="px-6 py-4 text-sm text-gray-500">{sol.item}</td>
+                <td className="px-6 py-4 text-sm text-gray-800 font-medium">
+                  {sol.item}<br/>
+                  <span className="text-xs text-orange-600">Requer Autorização Central</span>
+                </td>
                 <td className="px-6 py-4 text-sm font-bold text-hub-teal">{sol.pontos.toLocaleString()}</td>
                 <td className="px-6 py-4 text-sm space-x-2">
-                  <button className="text-green-600 hover:text-green-800 font-medium">Aprovar</button>
-                  <button className="text-red-600 hover:text-red-800 font-medium">Negar</button>
+                  <button className="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 text-xs font-bold">APROVAR</button>
+                  <button className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-xs font-bold">NEGAR</button>
                 </td>
               </tr>
             ))}
@@ -3843,42 +3726,59 @@ function ViewConfigLoyalty() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Configuração de Validade */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Validade dos Pontos por Produto</h3>
-        <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Validade dos Pontos (Meses)</h3>
+        <p className="text-sm text-gray-500 mb-4">Defina o tempo de expiração dos pontos por produto.</p>
+        <div className="space-y-3">
           {mockConfigValidade.map((conf, idx) => (
-            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
               <span className="font-medium text-gray-700">{conf.produto}</span>
               <div className="flex items-center">
                 <input 
                   type="number" 
                   defaultValue={conf.validadeMeses} 
-                  className="w-20 px-2 py-1 border border-gray-300 rounded-md text-center mr-2"
+                  className="w-20 px-2 py-1 border border-gray-300 rounded-md text-center mr-2 focus:ring-hub-teal focus:border-hub-teal"
                 />
                 <span className="text-sm text-gray-500">meses</span>
               </div>
             </div>
           ))}
-          <button className="w-full py-2 bg-green-600 text-white rounded-lg shadow-sm mt-2">Salvar Validades</button>
+          <button className="w-full py-2 bg-hub-teal text-white rounded-lg shadow-sm mt-4 hover:bg-teal-700 transition-colors">
+            <Save className="w-4 h-4 inline mr-2"/> Salvar Validades
+          </button>
         </div>
       </div>
 
-      {/* Configuração de Limite de Uso Automático */}
+      {/* Configuração de Limites Globais */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Limite de Uso Automático</h3>
-        <p className="text-sm text-gray-500 mb-4">
-          Resgates acima deste valor exigirão autorização da Central.
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Limite Global de Uso Automático</h3>
+        <p className="text-sm text-gray-500 mb-6">
+          Qualquer solicitação de resgate que exceda este valor em pontos necessitará de aprovação manual da Central.
         </p>
-        <div className="flex items-center space-x-4">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Pts</span>
-            <input 
-              type="number" 
-              defaultValue={5000} 
-              className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg"
-            />
+        
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Limite Máximo (Pontos)</label>
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1">
+              <input 
+                type="number" 
+                defaultValue={5000} 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-hub-teal focus:border-hub-teal text-lg font-semibold"
+              />
+              <span className="absolute right-4 top-3 text-gray-400 text-sm">pts</span>
+            </div>
           </div>
-          <button className="px-6 py-2 bg-hub-teal text-white rounded-lg shadow-sm">Salvar Limite</button>
         </div>
+
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
+          <h5 className="text-sm font-bold text-blue-800 mb-1 flex items-center"><ShieldAlert className="w-4 h-4 mr-1"/> Regra de Segurança</h5>
+          <p className="text-xs text-blue-700">
+            Se o cooperado possuir 15.000 pontos e tentar usar 6.000, a transação ficará pendente na aba "Autorizações". Se usar 4.000, será aprovada automaticamente.
+          </p>
+        </div>
+
+        <button className="w-full py-2 bg-hub-teal text-white rounded-lg shadow-sm hover:bg-teal-700 transition-colors">
+          <Save className="w-4 h-4 inline mr-2"/> Atualizar Limite Global
+        </button>
       </div>
     </div>
   );
@@ -3983,6 +3883,41 @@ function ViewLiberarSalaVIP() {
           <CheckCircle className="w-5 h-5 mr-2" /> Gerar Autorização
         </button>
       </div>
+    </div>
+); 
+}
+// =======================================================================
+// COMPONENTE AUXILIAR: DROPDOWN DE EXPORTAÇÃO 
+// =======================================================================
+function ExportarDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm"
+      >
+        <FileDown className="w-5 h-5 mr-2 text-gray-500" />
+        Exportar
+        <ChevronDown className="w-4 h-4 ml-2 text-gray-400" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 z-10 w-48 mt-2 origin-top-right bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5">
+          <div className="py-1">
+            <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <FileText className="w-4 h-4 mr-2 text-green-600" /> Excel (.xlsx)
+            </button>
+            <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <File className="w-4 h-4 mr-2 text-red-600" /> PDF (.pdf)
+            </button>
+            <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <List className="w-4 h-4 mr-2 text-blue-600" /> CSV (.csv)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
