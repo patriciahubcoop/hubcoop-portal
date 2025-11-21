@@ -73,10 +73,15 @@ import {
   History,
   CalendarDays,
   Filter,
-  UserCheck, // <-- ESTAVA A FALTAR E A CAUSAR O CRASH
-  // ÍCONES PARA A PÁGINA CONFIGURAÇÕES (NOVO)
+  UserCheck, 
   Upload,
   UserPlus,
+  Gift, // Para Loyalty
+  Armchair, // Para Sala VIP
+  Plane, // Para Milhas
+  Coffee, // Para Sala VIP
+  CheckSquare, // Para Conciliação
+  CreditCard as CreditCardIcon, // Alias se necessário
 } from 'lucide-react';
 
 // --- Cor Principal da Hubcoop ---
@@ -317,8 +322,15 @@ function LoginButton({ onClick, perfil, email }: { onClick: () => void; perfil: 
 // 4. O Layout Principal do Dashboard (Pós-Login) - CORRIGIDO
 // =======================================================================
 function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario: User }) {
-  // O estado inicial agora é 'Dashboard' (ou 'Configurações' se for Master)
   const [activePage, setActivePage] = useState(usuario.perfil === 'Master' ? 'Configuracoes' : 'Dashboard');
+{activePage === 'Loyalty' && <PaginaLoyalty usuario={usuario} />}
+{activePage === 'SalaVIP' && <PaginaSalaVIP usuario={usuario} />}
+{activePage !== 'Dashboard' && usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa' || usuario.perfil === 'PA'
+ activePage !== 'Loyalty' && usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa' || usuario.perfil === 'PA'
+ activePage !== 'SalaVIP' && usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa' || usuario.perfil === 'PA'
+ (
+  <PaginaPlaceholder pageName={activePage} />
+)}
   
   return (
     <div className="flex h-screen bg-gray-100">
@@ -372,6 +384,21 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
                 active={activePage === 'Relatorios'}
                 onClick={() => setActivePage('Relatorios')}
               />
+              {/* Item: Loyalty (Pontos) */}
+<SidebarLink
+  text="Loyalty (Pontos)"
+  icon={<Gift size={20} />}
+  active={activePage === 'Loyalty'}
+  onClick={() => setActivePage('Loyalty')}
+/>
+
+{/* Item: Sala VIP */}
+<SidebarLink
+  text="Sala VIP"
+  icon={<Armchair size={20} />}
+  active={activePage === 'SalaVIP'}
+  onClick={() => setActivePage('SalaVIP')}
+/>
             </>
           )}
 
@@ -905,7 +932,6 @@ function PaginaCooperados({ usuario }: { usuario: User }) {
 }
 
 // --- Componentes da Página Cooperados ---
-/* ... (Todos os componentes ListaCooperados e DetalheCooperado continuam idênticos) ... */
 type ListaCooperadosProps = {
   cooperados: Cooperado[];
   searchTerm: string;
@@ -914,14 +940,13 @@ type ListaCooperadosProps = {
 };
 
 function ListaCooperados({ cooperados, searchTerm, setSearchTerm, onSelect }: ListaCooperadosProps) {
-  // ... (código idêntico)
   return (
     <div className="bg-white rounded-xl shadow-lg">
       <div className="flex justify-between items-center p-5 border-b border-gray-200">
         <div className="relative w-full max-w-md">
           <input
             type="text"
-            placeholder="Buscar por nome, CPF ou e-mail..."
+            placeholder="Buscar por nome, CPF, CNPJ ou e-mail..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-hub-teal"
@@ -967,9 +992,6 @@ function ListaCooperados({ cooperados, searchTerm, setSearchTerm, onSelect }: Li
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                   <button onClick={() => onSelect(cooperado)} className="text-hub-teal hover:text-hub-teal-dark p-1">
                     <Eye className="w-5 h-5" />
-                  </button>
-                  <button className="text-gray-400 hover:text-gray-600 p-1">
-                    <Edit2 className="w-5 h-5" />
                   </button>
                   <button className="text-red-400 hover:text-red-600 p-1">
                     <Trash2 className="w-5 h-5" />
@@ -1489,8 +1511,9 @@ const mockAnuidadeProdutos: ProdutoAnuidade[] = [
 ];
 
 const mockRegrasDesconto: RegraDesconto[] = [
-  { id: 1, gasto: 4000, desconto: 20, produto: 'Infinite' },
-  { id: 2, gasto: 50000, desconto: 70, produto: 'Infinite' },
+  { id: 1, gasto: 4000, desconto na anuidade (mensal): 20, produto: 'Infinite' },
+  { id: 2, gasto: 50000, desconto na anuidade (mensal): 70, produto: 'Infinite' },
+
 ];
 
 const mockConfiguracoesProduto: ProdutoConfig[] = [
@@ -1645,6 +1668,7 @@ function ViewListaPrincipalCartoes({ kpis, cartoes }: { kpis: typeof mockKpiCart
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validade</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visualizar</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -1872,7 +1896,6 @@ function ViewAnuidadeCooperado() {
 
 // --- View 4: Anuidade por Produto ---
 function ViewAnuidadeProduto() {
-  // ... (código idêntico)
   const [anuidades, setAnuidades] = useState(mockAnuidadeProdutos);
   const [regras, setRegras] = useState(mockRegrasDesconto);
 
@@ -1892,17 +1915,22 @@ function ViewAnuidadeProduto() {
         <div className="space-y-4">
           {anuidades.map(prod => (
             <div key={prod.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-lg font-medium text-gray-800">{prod.nome}</span>
-              <div className="flex items-center">
-                <span className="text-lg font-semibold mr-1">R$</span>
-                <input 
-                  type="number"
-                  value={prod.valor}
-                  onChange={(e) => handleAnuidadeChange(prod.id, parseFloat(e.target.value))}
-                  className="w-32 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hub-teal"
-                />
-              </div>
-            </div>
+              <span className="text-gray-800">
+    % de desconto na anuidade (parcela mensal)
+  </span>
+  <span className="text-sm font-medium text-hub-teal">{regra.produto}</span>
+</div>
+              //<span className="text-lg font-medium text-gray-800">{prod.nome}</span>
+              //<div className="flex items-center">
+                //<span className="text-lg font-semibold mr-1">R$</span>
+                //<input 
+                  //type="number"
+                  //value={prod.valor}
+                  //onChange={(e) => handleAnuidadeChange(prod.id, parseFloat(e.target.value))}
+                  //className="w-32 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hub-teal"
+                // />
+              //</div>
+            // </div>
           ))}
           <button className="w-full flex items-center justify-center px-4 py-2 text-white bg-green-600 rounded-lg shadow-sm">
             <Save className="w-5 h-5 mr-2" /> Salvar Anuidades
@@ -2481,16 +2509,16 @@ const mockTiposDeRelatorios: RelatorioTipo[] = [
   { id: 2, titulo: 'Pagamentos', desc: 'Todos os pagamentos realizados', gerados: 0, icon: Banknote },
   { id: 3, titulo: 'Transações (Débito e Crédito)', desc: 'Todas as transações do período', gerados: 1, icon: List },
   { id: 4, titulo: 'Parcelamentos', desc: 'Parcelamentos de faturas', gerados: 0, icon: PieChart },
-  { id: 5, titulo: 'Receitas e Despesas', desc: 'Movimentações financeiras', gerados: 0, icon: AreaChart },
+  // { id: 5, titulo: 'Receitas e Despesas', desc: 'Movimentações financeiras', gerados: 0, icon: AreaChart },
   { id: 6, titulo: 'Cadastro de Cartões', desc: 'Base completa de cartões', gerados: 1, icon: Contact },
   { id: 7, titulo: 'Parcelamentos Rotativos', desc: 'Parcelamentos de juros rotativos', gerados: 0, icon: PieChart },
   { id: 8, titulo: 'Anuidades', desc: 'Cobranças de anuidade', gerados: 0, icon: Percent },
-  { id: 9, titulo: 'Resgates do Programa de Recompensas', desc: 'Todos os resgates de pontos', gerados: 0, icon: Users },
+  { id: 9, titulo: 'Resgates do Programa de Pontos', desc: 'Todos os resgates de pontos', gerados: 0, icon: Users },
   { id: 10, titulo: 'Ajustes da Central', desc: 'Lançamentos manuais e estornos', gerados: 0, icon: Edit2 },
   { id: 11, titulo: 'Cartões Bloqueados por Emissão', desc: 'Cartões que nunca foram ativados', gerados: 0, icon: ShieldAlert },
   { id: 12, titulo: 'CADOC 3040 - Coobrigações', desc: 'Relatório para Banco Central', gerados: 0, icon: Building },
-  { id: 13, titulo: 'Limites Gerencial', desc: 'Limites de crédito totais', gerados: 1, icon: BarChart2 },
-  { id: 14, titulo: 'IRPI - Imposto de Renda', desc: 'Informe de imposto de renda', gerados: 0, icon: FileText },
+  { id: 17, titulo: 'Conciliação - Cartão de Crédito', desc: 'Conciliação de transações liquidadas', gerados: 0, icon: CheckSquare },
+  { id: 18, titulo: 'Relatório de Bins', desc: 'Cartões emitidos vs disponibilizados por BIN', gerados: 0, icon: CreditCardIcon },
   { id: 15, titulo: 'Cessão de Crédito (Honra de Aval)', desc: 'Cooperados em cessão de crédito', gerados: 0, icon: AlertOctagon },
   { id: 16, titulo: 'Faturas Pagas', desc: 'Relação de faturas liquidadas', gerados: 1, icon: FileCheck },
 ];
@@ -2553,8 +2581,24 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
           </button>
         </div>
 
-        {/* --- NOVOS FILTROS --- */}
+        {/* --- FILTROS --- */}
         <div className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* Filtro de Produto (Novo) */}
+<div>
+  <label className="block text-sm font-medium text-gray-700">Produto</label>
+  <select className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md">
+    <option value="">Todos</option>
+    <option value="infinite">Infinite</option>
+    <option value="black">Black</option>
+    <option value="gold">Gold</option>
+  </select>
+</div>
+
+{/* Filtro de BIN (Novo) */}
+<div>
+  <label className="block text-sm font-medium text-gray-700">BIN</label>
+  <input type="text" placeholder="Ex: 454545" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+</div>
           {/* Filtro de Data (Para Todos) */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Período</label>
@@ -2568,7 +2612,7 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
           {/* Filtro de CPF (Para Todos) */}
           <div>
             <label className="block text-sm font-medium text-gray-700">CPF</label>
-            <input type="text" placeholder="000.000.000-00" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+            <input type="text" placeholder="000.000.000-00" or "00.000.000/0000-00" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
           </div>
 
           {/* Filtro de Cooperativa (SÓ CENTRAL VÊ) */}
@@ -2806,7 +2850,6 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
       )}
 
       {/* Modais */}
-      {/* O ModalNovaCentral foi REMOVIDO daqui */}
       {showModalNovaCoop && (
         <ModalNovaCooperativa onClose={() => setShowModalNovaCoop(false)} />
       )}
@@ -2814,9 +2857,7 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
   );
 }
 // --- Componentes da Página Cooperativas ---
-/* ... (Todos os componentes ListaCooperados e DetalheCooperado continuam idênticos) ... */
 function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, onSelect, onNovaCooperativa, usuario }: ViewListaCooperativasProps & { usuario: User }) {
-  // ... (código idêntico)
   return (
     <div className="space-y-6">
       {/* KPIs */}
@@ -2919,7 +2960,6 @@ function ViewListaCooperativas({ kpis, cooperativas, searchTerm, setSearchTerm, 
   );
 }
 function ViewDetalheCooperativa({ cooperativa, onBack }: { cooperativa: Cooperativa, onBack: () => void }) {
-  // ... (código idêntico)
   // Filtra os PAs que pertencem a esta cooperativa
   const pas = mockPontosAtendimento.filter(pa => pa.cooperativaId === cooperativa.id);
 
@@ -3004,7 +3044,6 @@ function ModalNovaCooperativa({ onClose }: { onClose: () => void }) {
 }
 // Este modal não é mais usado aqui, mas o deixamos definido caso outra página precise
 function ModalNovaCentral({ onClose }: { onClose: () => void }) {
-  // ... (aqui entraria o formulário de cadastro de central)
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
@@ -3373,7 +3412,6 @@ function PaginaConfiguracoes({ usuario }: { usuario: User }) {
 
 // --- Sub-componentes de Configurações ---
 
-// (FormCadastroCentral e ListaEdicaoCentrais permanecem iguais)
 // MASTER: Cadastra Central
 function FormCadastroCentral() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -3646,6 +3684,302 @@ function ListaEdicaoUsuarios({ usuario }: { usuario: User }) {
           )
         ))}
        </div>
+    </div>
+  );
+}
+// =======================================================================
+// 17. PÁGINA DE LOYALTY (PONTOS)
+// =======================================================================
+
+// Tipos
+type ItemLoyalty = { id: number; nome: string; custoPontos: number; categoria: string };
+type SolicitacaoPontos = { id: number; cooperado: string; cpf: string; produto: string; pontos: number; item: string; data: string; status: 'pendente' | 'aprovado' };
+type ConfigValidade = { produto: string; validadeMeses: number };
+
+// Mocks
+const mockItensLoyalty: ItemLoyalty[] = [
+  { id: 1, nome: 'Voucher iFood R$ 50', custoPontos: 3000, categoria: 'Voucher' },
+  { id: 2, nome: 'Voucher Uber R$ 50', custoPontos: 3000, categoria: 'Voucher' },
+  { id: 3, nome: 'Aporte Capital Social', custoPontos: 5000, categoria: 'Investimento' },
+  { id: 4, nome: 'Aporte Previdência', custoPontos: 10000, categoria: 'Previdência' },
+  { id: 5, nome: 'Transferência Miles (1k)', custoPontos: 2000, categoria: 'Milhas' },
+];
+
+const mockSolicitacoesLoyalty: SolicitacaoPontos[] = [
+  { id: 1, cooperado: 'Ana Beatriz Silva', cpf: '123.456.789-00', produto: 'Visa Infinite', pontos: 5000, item: 'Aporte Capital Social', data: '17/11/2025', status: 'pendente' },
+  { id: 2, cooperado: 'Roberto L. Souza', cpf: '987.654.321-11', produto: 'Visa Gold', pontos: 3000, item: 'Voucher iFood', data: '16/11/2025', status: 'pendente' },
+];
+
+const mockConfigValidade: ConfigValidade[] = [
+  { produto: 'Visa Infinite', validadeMeses: 36 },
+  { produto: 'Visa Platinum', validadeMeses: 24 },
+  { produto: 'Visa Gold', validadeMeses: 24 },
+  { produto: 'Visa Classic', validadeMeses: 12 },
+];
+
+function PaginaLoyalty({ usuario }: { usuario: User }) {
+  const [activeTab, setActiveTab] = useState<'catalogo' | 'autorizacoes' | 'configuracoes'>('catalogo');
+
+  return (
+    <div className="space-y-6">
+      {/* Menu Superior Interno */}
+      <div className="flex space-x-2 border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('catalogo')}
+          className={`px-4 py-3 text-sm font-medium ${activeTab === 'catalogo' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}
+        >
+          Catálogo de Recompensas
+        </button>
+        {/* Apenas a Central vê as autorizações */}
+        {usuario.perfil === 'Central' && (
+          <button
+            onClick={() => setActiveTab('autorizacoes')}
+            className={`px-4 py-3 text-sm font-medium ${activeTab === 'autorizacoes' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}
+          >
+            Autorizações Pendentes
+          </button>
+        )}
+        <button
+          onClick={() => setActiveTab('configuracoes')}
+          className={`px-4 py-3 text-sm font-medium ${activeTab === 'configuracoes' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}
+        >
+          Configurações e Validade
+        </button>
+      </div>
+
+      {/* Conteúdo das Abas */}
+      {activeTab === 'catalogo' && <ViewCatalogoLoyalty />}
+      {activeTab === 'autorizacoes' && <ViewAutorizacoesLoyalty />}
+      {activeTab === 'configuracoes' && <ViewConfigLoyalty />}
+    </div>
+  );
+}
+
+function ViewCatalogoLoyalty() {
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-800">Itens de Troca</h3>
+          <p className="text-sm text-gray-500">Defina os itens disponíveis e o custo em pontos.</p>
+        </div>
+        <button className="flex items-center px-4 py-2 text-white rounded-lg shadow-sm" style={{ backgroundColor: HUB_BRAND_COLOR }}>
+          <Plus className="w-5 h-5 mr-2" /> Novo Item
+        </button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {mockItensLoyalty.map(item => (
+          <div key={item.id} className="border rounded-xl p-4 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start">
+              <div className="p-2 bg-gray-100 rounded-lg">
+                {item.categoria === 'Voucher' && <Gift className="w-6 h-6 text-orange-500" />}
+                {item.categoria === 'Milhas' && <Plane className="w-6 h-6 text-blue-500" />}
+                {item.categoria === 'Investimento' && <TrendingUp className="w-6 h-6 text-green-500" />}
+                {item.categoria === 'Previdência' && <ShieldAlert className="w-6 h-6 text-purple-500" />}
+              </div>
+              <span className="text-xs font-semibold bg-gray-100 px-2 py-1 rounded-full text-gray-600">{item.categoria}</span>
+            </div>
+            <h4 className="mt-3 font-semibold text-gray-800">{item.nome}</h4>
+            <p className="text-sm text-gray-500 mt-1">Custo: <span className="font-bold text-hub-teal">{item.custoPontos.toLocaleString()} pts</span></p>
+            <div className="mt-4 flex space-x-2">
+              <button className="flex-1 py-1.5 text-sm border border-gray-300 rounded text-gray-600 hover:bg-gray-50">Editar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ViewAutorizacoesLoyalty() {
+  return (
+    <div className="bg-white rounded-xl shadow-lg">
+      <div className="p-5 border-b border-gray-200">
+        <h3 className="text-xl font-semibold text-gray-800">Autorizações de Uso de Pontos</h3>
+        <p className="text-sm text-gray-500">Aprovação centralizada para resgates acima do limite.</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-max">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Data</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Cooperado</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Produto</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Resgate</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Pontos</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Ação</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {mockSolicitacoesLoyalty.map(sol => (
+              <tr key={sol.id}>
+                <td className="px-6 py-4 text-sm text-gray-500">{sol.data}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  {sol.cooperado}<br/>
+                  <span className="text-xs text-gray-400">{sol.cpf}</span>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-500">{sol.produto}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{sol.item}</td>
+                <td className="px-6 py-4 text-sm font-bold text-hub-teal">{sol.pontos.toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm space-x-2">
+                  <button className="text-green-600 hover:text-green-800 font-medium">Aprovar</button>
+                  <button className="text-red-600 hover:text-red-800 font-medium">Negar</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ViewConfigLoyalty() {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Configuração de Validade */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Validade dos Pontos por Produto</h3>
+        <div className="space-y-4">
+          {mockConfigValidade.map((conf, idx) => (
+            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="font-medium text-gray-700">{conf.produto}</span>
+              <div className="flex items-center">
+                <input 
+                  type="number" 
+                  defaultValue={conf.validadeMeses} 
+                  className="w-20 px-2 py-1 border border-gray-300 rounded-md text-center mr-2"
+                />
+                <span className="text-sm text-gray-500">meses</span>
+              </div>
+            </div>
+          ))}
+          <button className="w-full py-2 bg-green-600 text-white rounded-lg shadow-sm mt-2">Salvar Validades</button>
+        </div>
+      </div>
+
+      {/* Configuração de Limite de Uso Automático */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Limite de Uso Automático</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Resgates acima deste valor exigirão autorização da Central.
+        </p>
+        <div className="flex items-center space-x-4">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Pts</span>
+            <input 
+              type="number" 
+              defaultValue={5000} 
+              className="w-full pl-12 pr-4 py-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+          <button className="px-6 py-2 bg-hub-teal text-white rounded-lg shadow-sm">Salvar Limite</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+// =======================================================================
+// 18. PÁGINA DE SALA VIP
+// =======================================================================
+
+type AcessoSalaVIP = { id: number; data: string; cooperado: string; cpf: string; produto: string; sala: string; acompanhantes: number; custo: string };
+
+const mockAcessosVIP: AcessoSalaVIP[] = [
+  { id: 1, data: '15/11/2025 14:30', cooperado: 'Ana Beatriz Silva', cpf: '123.456.789-00', produto: 'Visa Infinite', sala: 'Visa Infinite Lounge GRU', acompanhantes: 1, custo: 'Isento' },
+  { id: 2, data: '10/11/2025 09:15', cooperado: 'Daniel Oliveira', cpf: '111.222.333-44', produto: 'Visa Platinum', sala: 'W Premium Lounge', acompanhantes: 0, custo: 'US$ 32.00' },
+];
+
+function PaginaSalaVIP({ usuario }: { usuario: User }) {
+  const [activeTab, setActiveTab] = useState<'relatorio' | 'liberacao'>('relatorio');
+
+  return (
+    <div className="space-y-6">
+      <div className="flex space-x-2 border-b border-gray-200">
+        <button onClick={() => setActiveTab('relatorio')} className={`px-4 py-3 text-sm font-medium ${activeTab === 'relatorio' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}>Relatório de Uso</button>
+        <button onClick={() => setActiveTab('liberacao')} className={`px-4 py-3 text-sm font-medium ${activeTab === 'liberacao' ? 'border-b-2 border-hub-teal text-hub-teal' : 'text-gray-500'}`}>Liberar Acesso</button>
+      </div>
+
+      {activeTab === 'relatorio' && <ViewRelatorioSalaVIP />}
+      {activeTab === 'liberacao' && <ViewLiberarSalaVIP />}
+    </div>
+  );
+}
+
+function ViewRelatorioSalaVIP() {
+  return (
+    <div className="bg-white rounded-xl shadow-lg">
+      <div className="p-5 border-b border-gray-200">
+        <h3 className="text-xl font-semibold text-gray-800">Histórico de Acessos</h3>
+        
+        {/* Filtros Específicos Solicitados */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+           <input type="date" className="px-3 py-2 border border-gray-300 rounded-md" />
+           <select className="px-3 py-2 border border-gray-300 rounded-md"><option>Todas Cooperativas</option></select>
+           <select className="px-3 py-2 border border-gray-300 rounded-md"><option>Todos Produtos</option></select>
+           <input type="text" placeholder="CPF / CNPJ" className="px-3 py-2 border border-gray-300 rounded-md" />
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-max">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Data</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Cooperado</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Produto</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Sala</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Acomp.</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Custo</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {mockAcessosVIP.map(acesso => (
+              <tr key={acesso.id}>
+                <td className="px-6 py-4 text-sm text-gray-500">{acesso.data}</td>
+                <td className="px-6 py-4 text-sm text-gray-900 font-medium">{acesso.cooperado}<br/><span className="text-xs text-gray-400">{acesso.cpf}</span></td>
+                <td className="px-6 py-4 text-sm text-gray-500">{acesso.produto}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{acesso.sala}</td>
+                <td className="px-6 py-4 text-sm text-gray-500">{acesso.acompanhantes}</td>
+                <td className="px-6 py-4 text-sm font-semibold text-gray-800">{acesso.custo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ViewLiberarSalaVIP() {
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto">
+      <h3 className="text-xl font-semibold text-gray-800 mb-6">Liberar Acesso Sala VIP</h3>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700">CPF do Cooperado</label>
+          <input type="text" placeholder="000.000.000-00" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Produto (Cartão)</label>
+          <select className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md">
+            <option>Selecione...</option>
+            <option>Visa Infinite</option>
+            <option>Visa Platinum</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Sala / Aeroporto</label>
+          <input type="text" placeholder="Ex: Lounge Key GRU" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
+        </div>
+        <div className="p-4 bg-blue-50 text-blue-800 text-sm rounded-lg">
+          <p className="font-bold flex items-center"><ShieldAlert className="w-4 h-4 mr-2"/> Atenção</p>
+          <p>A liberação manual gerará um código QR temporário válido por 4 horas.</p>
+        </div>
+        <button className="w-full py-3 bg-hub-teal text-white font-semibold rounded-lg shadow-sm flex justify-center items-center">
+          <CheckCircle className="w-5 h-5 mr-2" /> Gerar Autorização
+        </button>
+      </div>
     </div>
   );
 }
