@@ -1511,9 +1511,8 @@ const mockAnuidadeProdutos: ProdutoAnuidade[] = [
 ];
 
 const mockRegrasDesconto: RegraDesconto[] = [
-  { id: 1, gasto: 4000, desconto na anuidade (mensal): 20, produto: 'Infinite' },
-  { id: 2, gasto: 50000, desconto na anuidade (mensal): 70, produto: 'Infinite' },
-
+  { id: 1, gasto: 4000, desconto: 20, produto: 'Infinite' },
+  { id: 2, gasto: 50000, desconto: 70, produto: 'Infinite' },
 ];
 
 const mockConfiguracoesProduto: ProdutoConfig[] = [
@@ -1915,50 +1914,54 @@ function ViewAnuidadeProduto() {
         <div className="space-y-4">
           {anuidades.map(prod => (
             <div key={prod.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-800">
-    % de desconto na anuidade (parcela mensal)
-  </span>
-  <span className="text-sm font-medium text-hub-teal">{regra.produto}</span>
-</div>
-              //<span className="text-lg font-medium text-gray-800">{prod.nome}</span>
-              //<div className="flex items-center">
-                //<span className="text-lg font-semibold mr-1">R$</span>
-                //<input 
-                  //type="number"
-                  //value={prod.valor}
-                  //onChange={(e) => handleAnuidadeChange(prod.id, parseFloat(e.target.value))}
-                  //className="w-32 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hub-teal"
-                // />
-              //</div>
-            // </div>
+              <span className="text-lg font-medium text-gray-800">{prod.nome}</span>
+              <div className="flex items-center">
+                <span className="text-lg font-semibold mr-1">R$</span>
+                <input 
+                  type="number"
+                  value={prod.valor}
+                  onChange={(e) => handleAnuidadeChange(prod.id, parseFloat(e.target.value))}
+                  className="w-32 px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-hub-teal"
+                />
+              </div>
+            </div>
           ))}
           <button className="w-full flex items-center justify-center px-4 py-2 text-white bg-green-600 rounded-lg shadow-sm">
             <Save className="w-5 h-5 mr-2" /> Salvar Anuidades
           </button>
         </div>
       </div>
+
       <div className="p-8 bg-white rounded-xl shadow-lg">
         <h3 className="text-xl font-semibold text-gray-800">Regras de Desconto por Gasto</h3>
         <p className="text-sm text-gray-500 mt-1 mb-4">Configure descontos automáticos baseados no gasto mensal.</p>
         <div className="space-y-4">
           {regras.map(regra => (
-            <div key={regra.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <span className="text-gray-800">Gasto de</span>
-              <input 
-                type="number"
-                value={regra.gasto}
-                onChange={(e) => handleRegraChange(regra.id, 'gasto', parseFloat(e.target.value))}
-                className="w-24 px-2 py-1 border border-gray-300 rounded-md"
-              />
-              <span className="text-gray-800">gera</span>
-              <input 
-                type="number"
-                value={regra.desconto}
-                onChange={(e) => handleRegraChange(regra.id, 'desconto', parseFloat(e.target.value))}
-                className="w-20 px-2 py-1 border border-gray-300 rounded-md"
-              />
-              <span className="text-gray-800">% de desconto</span>
-               <span className="text-sm font-medium text-hub-teal">{regra.produto}</span>
+            <div key={regra.id} className="flex flex-col sm:flex-row items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-800 text-sm">Gasto de</span>
+                <input 
+                  type="number"
+                  value={regra.gasto}
+                  onChange={(e) => handleRegraChange(regra.id, 'gasto', parseFloat(e.target.value))}
+                  className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                />
+                <span className="text-gray-800 text-sm">gera</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input 
+                  type="number"
+                  value={regra.desconto}
+                  onChange={(e) => handleRegraChange(regra.id, 'desconto', parseFloat(e.target.value))}
+                  className="w-16 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                />
+                {/* AQUI ESTÁ O TEXTO QUE VOCÊ PEDIU */}
+                <span className="text-gray-800 text-xs leading-tight max-w-[120px]">
+                  % de desconto na anuidade (mensal)
+                </span>
+                <span className="text-sm font-bold text-hub-teal">{regra.produto}</span>
+              </div>
             </div>
           ))}
            <button className="w-full flex items-center justify-center px-4 py-2 text-white bg-green-600 rounded-lg shadow-sm">
@@ -1969,7 +1972,7 @@ function ViewAnuidadeProduto() {
     </div>
   );
 }
-
+      
 // --- View 5: Configurações do Produto ---
 function ViewConfiguracoesProduto() {
   // ... (código idêntico)
