@@ -2908,7 +2908,7 @@ function ViewAlterarVencimento() {
 }
 
 // =======================================================================
-// 13. A PÁGINA DE RELATÓRIOS (ATUALIZADA COM NOVOS FILTROS)
+// 13. A PÁGINA DE RELATÓRIOS (ATUALIZADA COM NOVOS FILTROS E CARTEIRAS VIRTUAIS)
 // =======================================================================
 
 // --- Tipos e Mocks ---
@@ -2939,6 +2939,7 @@ const mockHistoricoRelatorios: HistoricoRelatorio[] = [
 
 // Lista de Tipos de Relatórios Disponíveis
 const mockTiposDeRelatorios: RelatorioTipo[] = [
+  { id: 'carteiras_virtuais', titulo: 'Carteiras Virtuais Ativas', desc: 'Portadores com token ativo em wallets', gerados: 3, icon: Smartphone }, // NOVO
   { id: 'anuidade', titulo: 'Relatório de Anuidades', desc: 'Cobranças, parcelas e status de anuidade', gerados: 12, icon: Percent },
   { id: 'sala_vip', titulo: 'Uso de Sala VIP', desc: 'Acessos, custos extras e salas utilizadas', gerados: 5, icon: Armchair },
   { id: 'servicos_adicionais', titulo: 'Serviços Adicionais', desc: 'PPR, Notificações e outros serviços contratados', gerados: 8, icon: ShieldAlert },
@@ -2979,6 +2980,13 @@ const mockDadosSalaVIP = [
 const mockDadosServicos = [
   { id: 1, cpfCnpj: '123.456.789-00', nome: 'Ana Beatriz Silva', idCartao: '900103', cartaoMascarado: '4111 11** **** 1111', valor: 29.90, dataContratacao: '10/01/2025', cooperativa: 'Crediserv', pa: 'PA 05', produto: 'Seguro PPR', status: '4 Parcelas Restantes' },
   { id: 2, cpfCnpj: '543.210.987-00', nome: 'João Pedro Costa', idCartao: '900104', cartaoMascarado: '4111 00** **** 1111', valor: 5.90, dataContratacao: '01/06/2025', cooperativa: 'Coopesa', pa: 'PA 04', produto: 'Notificação SMS', status: 'Quitado / Recorrente' },
+];
+
+// 4. Mock Carteiras Virtuais (NOVO)
+const mockDadosCarteirasVirtuais = [
+  { id: 1, cpfCnpj: '123.456.789-00', nome: 'Ana Beatriz Silva', idCartao: '900103', cartaoMascarado: '4111 11** **** 9988', wallet: 'Apple Pay', dataAtivacao: '15/01/2025', ultimoUso: '17/11/2025', status: 'Ativo' },
+  { id: 2, cpfCnpj: '111.222.333-44', nome: 'Carlos Eduardo Souza', idCartao: '900102', cartaoMascarado: '5200 00** **** 2045', wallet: 'Google Pay', dataAtivacao: '20/02/2025', ultimoUso: '10/11/2025', status: 'Ativo' },
+  { id: 3, cpfCnpj: '987.654.321-11', nome: 'João Pedro Costa', idCartao: '900104', cartaoMascarado: '4111 00** **** 1111', wallet: 'Samsung Pay', dataAtivacao: '05/03/2025', ultimoUso: '-', status: 'Suspenso' },
 ];
 
 // --- Componente PAI da Página Relatórios ---
@@ -3151,8 +3159,52 @@ function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => 
           </div>
         )}
 
+        {/* --- 4. RELATÓRIO DE CARTEIRAS VIRTUAIS (NOVO) --- */}
+        {tipo === 'carteiras_virtuais' && (
+          <div>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600 uppercase font-bold">
+                <tr>
+                  <th className="px-4 py-3">CPF/CNPJ</th>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Cartão (ID)</th>
+                  <th className="px-4 py-3">Wallet</th>
+                  <th className="px-4 py-3">Data Ativação</th>
+                  <th className="px-4 py-3">Último Uso</th>
+                  <th className="px-4 py-3">Status Token</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {mockDadosCarteirasVirtuais.map(item => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">{item.cpfCnpj}</td>
+                    <td className="px-4 py-3 font-medium">{item.nome}</td>
+                    <td className="px-4 py-3 font-mono">{item.cartaoMascarado} ({item.idCartao})</td>
+                    <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold border ${
+                          item.wallet === 'Apple Pay' ? 'bg-gray-900 text-white border-gray-900' :
+                          item.wallet === 'Google Pay' ? 'bg-white text-gray-700 border-gray-300' :
+                          'bg-blue-900 text-white border-blue-900'
+                        }`}>
+                          {item.wallet}
+                        </span>
+                    </td>
+                    <td className="px-4 py-3">{item.dataAtivacao}</td>
+                    <td className="px-4 py-3">{item.ultimoUso}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${item.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* --- Placeholder para outros relatórios --- */}
-        {!['anuidade', 'sala_vip', 'servicos_adicionais'].includes(tipo) && (
+        {!['anuidade', 'sala_vip', 'servicos_adicionais', 'carteiras_virtuais'].includes(tipo) && (
           <div className="text-center py-10 text-gray-500">
             <p>Visualização detalhada ainda não implementada para este tipo de relatório no protótipo.</p>
           </div>
@@ -3318,7 +3370,6 @@ function ViewGerarRelatorios({ tipos, onGerar }: { tipos: RelatorioTipo[], onGer
     </div>
   );
 }
-
 // =======================================================================
 // 14. A PÁGINA DE COOPERATIVAS (COM LÓGICA DE SEGREGAÇÃO CORRIGIDA)
 // =======================================================================
