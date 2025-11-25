@@ -84,6 +84,7 @@ import {
   CheckSquare, // Para Conciliação
   CreditCard as CreditCardIcon, 
   ArrowDownCircle,
+  Smartphone,
 } from 'lucide-react';
 
 // --- Cor Principal da Hubcoop ---
@@ -347,6 +348,8 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
               <SidebarLink text="Relatórios" icon={<BarChart3 size={18} />} active={activePage === 'Relatorios'} onClick={() => setActivePage('Relatorios')} />
               <SidebarLink text="Loyalty (Pontos)" icon={<Gift size={18} />} active={activePage === 'Loyalty'} onClick={() => setActivePage('Loyalty')} />
               <SidebarLink text="Sala VIP" icon={<Armchair size={18} />} active={activePage === 'SalaVIP'} onClick={() => setActivePage('SalaVIP')} />
+              {/* Carteiras Virtuais movido para aqui (geral) para não duplicar */}
+              <SidebarLink text="Carteiras Virtuais" icon={<Smartphone size={18} />} active={activePage === 'CarteirasVirtuais'} onClick={() => setActivePage('CarteirasVirtuais')} />
             </>
           )}
 
@@ -359,17 +362,18 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
           {usuario.perfil === 'Central' && (
             <SidebarLink text="Usuários" icon={<Users size={18} />} active={activePage === 'Usuarios'} onClick={() => setActivePage('Usuarios')} />
           )}
-        <SidebarLink text="Gestão de Limites" icon={<SlidersHorizontal size={18} />} active={activePage === 'GestaoLimites'} onClick={() => setActivePage('GestaoLimites')} />
-<SidebarLink text="Conta Salário" icon={<Wallet size={18} />} active={activePage === 'ContaSalario'} onClick={() => setActivePage('ContaSalario')} />
-<SidebarLink text="Serviços Adicionais" icon={<Coffee size={18} />} active={activePage === 'ServicosAdicionais'} onClick={() => setActivePage('ServicosAdicionais')} />
-{usuario.perfil === 'Central' && (
-  <SidebarLink text="Baixas Manuais" icon={<ArrowDownCircle size={18} />} active={activePage === 'Baixas'} onClick={() => setActivePage('Baixas')} />
-)}
-</nav>
+
+          <SidebarLink text="Gestão de Limites" icon={<SlidersHorizontal size={18} />} active={activePage === 'GestaoLimites'} onClick={() => setActivePage('GestaoLimites')} />
+          <SidebarLink text="Conta Salário" icon={<Wallet size={18} />} active={activePage === 'ContaSalario'} onClick={() => setActivePage('ContaSalario')} />
+          <SidebarLink text="Serviços Adicionais" icon={<Coffee size={18} />} active={activePage === 'ServicosAdicionais'} onClick={() => setActivePage('ServicosAdicionais')} />
+          
+          {usuario.perfil === 'Central' && (
+            <SidebarLink text="Lançamentos" icon={<ArrowDownCircle size={18} />} active={activePage === 'Lancamentos'} onClick={() => setActivePage('Lancamentos')} />
+          )}
+        </nav>
 
         {/* 4.3. Rodapé do Menu (Configurações e Sair) */}
         <div className="p-2 border-t border-white border-opacity-20 space-y-1">
-          {/* Configurações agora fica fixo embaixo */}
           <SidebarLink
             text="Configurações"
             icon={<Settings size={18} />}
@@ -385,11 +389,11 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
         </div>
       </aside>
 
-      {/* Conteúdo Principal (Direita) - Mantido Igual */}
+      {/* Conteúdo Principal (Direita) */}
       <div className="flex flex-col flex-1">
         <header className="flex items-center justify-between h-20 px-6 bg-white shadow-md">
           <h2 className="text-3xl font-semibold text-gray-700">
-            {activePage === 'Loyalty' ? 'Loyalty (Pontos)' : activePage}
+            {activePage === 'Loyalty' ? 'Loyalty (Pontos)' : activePage.replace(/([A-Z])/g, ' $1').trim()}
           </h2>
           <div className="text-right">
             <div className="flex items-center space-x-6">
@@ -423,7 +427,10 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
           {activePage === 'GestaoLimites' && <PaginaGestaoLimites usuario={usuario} />} 
           {activePage === 'ContaSalario' && <PaginaContaSalario usuario={usuario} />}
           {activePage === 'ServicosAdicionais' && <PaginaServicosAdicionais usuario={usuario} />}
-          {activePage === 'Baixas' && <PaginaBaixas usuario={usuario} />}
+          {activePage === 'Lancamentos' && <PaginaLancamentos usuario={usuario} />}
+          {activePage === 'CarteirasVirtuais' && <PaginaCarteirasVirtuais usuario={usuario} />}
+
+          {/* LÓGICA DE PLACEHOLDER CORRIGIDA ABAIXO */}
           {activePage !== 'Dashboard' && 
            activePage !== 'Cooperados' && 
            activePage !== 'Cartoes' && 
@@ -438,7 +445,8 @@ function DashboardLayout({ onLogout, usuario }: { onLogout: () => void; usuario:
            activePage !== 'GestaoLimites' &&       
            activePage !== 'ContaSalario' &&        
            activePage !== 'ServicosAdicionais' &&
-           activePage !== 'Baixas' &&
+           activePage !== 'Lancamentos' &&
+           activePage !== 'CarteirasVirtuais' &&  // <--- Faltava o && aqui
            (
             <PaginaPlaceholder pageName={activePage} />
           )}
@@ -1415,7 +1423,7 @@ function InfoRevisao({ label, value }: { label: string; value: string }) {
 }
 
 // =======================================================================
-// 10. A PÁGINA DE CARTÕES (VERSÃO UNIFICADA E CORRIGIDA)
+// 10. A PÁGINA DE CARTÕES (ATUALIZADA - CONFIGURAÇÕES DE JUROS)
 // =======================================================================
 
 // --- Definição de Tipos para Cartões ---
@@ -1465,12 +1473,13 @@ type ProdutoConfig = {
   mora: number; 
   juros: number; // Juros Atraso
   
-  // Novos Campos Financeiros
+  // Campos Financeiros
   percRotativo: number;
   percSaque: number;
   percJurosEmissor: number;
   percJurosCrediario: number;
-  percParcelamentoFatura: number;
+  percParcelamentoFatura: number; // Renomeado visualmente para "Refinanciamento"
+  percParcelamentoRotativo: number; // NOVO CAMPO
   
   // Custo Reposição (Lista por Coop)
   custosReposicao: CustoReposicao[];
@@ -1517,7 +1526,6 @@ const mockEntregaCartoes: CartaoEntrega[] = [
   },
 ];
 
-// MOCK DO HISTÓRICO (Exemplos Variados)
 const mockHistoricoCartoes: HistoricoCartao[] = [
   { id: 1, numeroMascarado: '4111 11** **** 9988', dataEmissao: '10/01/2025', dataVencimento: '01/2030', tipoProduto: 'Visa Infinite', status: 'Ativo' },
   { id: 2, numeroMascarado: '4111 55** **** 5544', dataEmissao: '15/05/2024', dataVencimento: '05/2029', tipoProduto: 'Visa Platinum', status: 'Cancelado' },
@@ -1535,30 +1543,34 @@ const mockRegrasDesconto: RegraDesconto[] = [
   { id: 2, gasto: 8000, desconto: 100, produto: 'Infinite' },
 ];
 
-// MOCK DE CONFIGURAÇÕES (Gold, Empresarial, Infinite, Platinum)
+// MOCK DE CONFIGURAÇÕES (ATUALIZADO COM NOVOS CAMPOS)
 const mockConfiguracoesProduto: ProdutoConfig[] = [
   { 
     id: 1, nome: 'Infinite', 
     multa: 2.0, mora: 10.00, juros: 1.5,
-    percRotativo: 12.5, percSaque: 3.5, percJurosEmissor: 2.0, percJurosCrediario: 4.5, percParcelamentoFatura: 5.0,
+    percRotativo: 12.5, percSaque: 3.5, percJurosEmissor: 2.0, percJurosCrediario: 4.5, 
+    percParcelamentoFatura: 5.0, percParcelamentoRotativo: 8.5, // Novo campo
     custosReposicao: [{ cooperativa: 'Crediserv', valor: 25.00 }, { cooperativa: 'Coopesa', valor: 30.00 }]
   },
   { 
     id: 2, nome: 'Platinum', 
     multa: 2.0, mora: 10.00, juros: 1.5,
-    percRotativo: 13.5, percSaque: 4.0, percJurosEmissor: 2.2, percJurosCrediario: 4.8, percParcelamentoFatura: 5.5,
+    percRotativo: 13.5, percSaque: 4.0, percJurosEmissor: 2.2, percJurosCrediario: 4.8, 
+    percParcelamentoFatura: 5.5, percParcelamentoRotativo: 9.0, // Novo campo
     custosReposicao: [{ cooperativa: 'Crediserv', valor: 20.00 }, { cooperativa: 'Coopesa', valor: 25.00 }]
   },
   { 
     id: 3, nome: 'Gold', 
     multa: 2.0, mora: 10.00, juros: 1.5,
-    percRotativo: 14.5, percSaque: 4.5, percJurosEmissor: 2.5, percJurosCrediario: 5.0, percParcelamentoFatura: 6.0,
+    percRotativo: 14.5, percSaque: 4.5, percJurosEmissor: 2.5, percJurosCrediario: 5.0, 
+    percParcelamentoFatura: 6.0, percParcelamentoRotativo: 10.0, // Novo campo
     custosReposicao: [{ cooperativa: 'Crediserv', valor: 15.00 }, { cooperativa: 'Coopesa', valor: 15.00 }]
   },
   { 
     id: 4, nome: 'Empresarial', 
     multa: 2.0, mora: 15.00, juros: 2.0,
-    percRotativo: 11.5, percSaque: 3.0, percJurosEmissor: 1.8, percJurosCrediario: 4.0, percParcelamentoFatura: 4.5,
+    percRotativo: 11.5, percSaque: 3.0, percJurosEmissor: 1.8, percJurosCrediario: 4.0, 
+    percParcelamentoFatura: 4.5, percParcelamentoRotativo: 7.5, // Novo campo
     custosReposicao: [{ cooperativa: 'Crediserv', valor: 35.00 }, { cooperativa: 'Coopesa', valor: 40.00 }]
   }
 ];
@@ -1596,7 +1608,7 @@ function PaginaCartoes({ usuario }: { usuario: User }) {
   );
 }
 
-// --- View 1: Lista Principal (COM CORREÇÃO DO MODAL 'OLHO') ---
+// --- View 1: Lista Principal ---
 function ViewListaPrincipalCartoes({ kpis, cartoes, usuario }: { kpis: typeof mockKpiCartoes; cartoes: Cartao[]; usuario: User }) {
   const [statusFilter, setStatusFilter] = useState('todos');
   const [filtroCoop, setFiltroCoop] = useState('');
@@ -1696,22 +1708,18 @@ function ViewListaPrincipalCartoes({ kpis, cartoes, usuario }: { kpis: typeof mo
         </div>
       </div>
       
-      {/* RENDERIZAÇÃO DO MODAL CORRIGIDA */}
       {modalOpen && cartaoSelecionado && (
         <ModalDetalheCartao 
           cartao={cartaoSelecionado} 
           onClose={() => setModalOpen(false)} 
-          onUpdate={(novoStatus) => {
-             console.log(`Atualizando para ${novoStatus}`);
-             setModalOpen(false);
-          }} 
+          onUpdate={() => setModalOpen(false)} 
         />
       )}
     </div>
   );
 }
 
-// --- Componente Modal Detalhe (Garante que aparece) ---
+// --- Componente Modal Detalhe ---
 function ModalDetalheCartao({ cartao, onClose, onUpdate }: { cartao: Cartao; onClose: () => void; onUpdate: (s: string) => void }) {
   const [novoStatus, setNovoStatus] = useState(cartao.status);
 
@@ -1777,7 +1785,7 @@ function ModalDetalheCartao({ cartao, onClose, onUpdate }: { cartao: Cartao; onC
   );
 }
 
-// --- View 2: Acompanhar Entrega (Mantida) ---
+// --- View 2: Acompanhar Entrega ---
 function ViewAcompanharEntrega({ entregas }: { entregas: CartaoEntrega[] }) {
   return (
     <div className="bg-white rounded-xl shadow-lg">
@@ -1824,7 +1832,7 @@ function ViewAcompanharEntrega({ entregas }: { entregas: CartaoEntrega[] }) {
   );
 }
 
-// --- View 3: Upgrade/Downgrade (CORRIGIDO: Botão Buscar e Histórico Completo) ---
+// --- View 3: Upgrade/Downgrade ---
 function ViewUpgradeDowngrade() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cooperadoEncontrado, setCooperadoEncontrado] = useState(false);
@@ -1904,7 +1912,7 @@ function ViewUpgradeDowngrade() {
   );
 }
 
-// --- View 4: Anuidade (Cooperado) (CORRIGIDO: Botões e Campos) ---
+// --- View 4: Anuidade (Cooperado) ---
 function ViewAnuidadeCooperado() {
   const [searchTerm, setSearchTerm] = useState('');
   const [cooperado, setCooperado] = useState<any | null>(null);
@@ -1963,7 +1971,7 @@ function ViewAnuidadeCooperado() {
   );
 }
 
-// --- View 5: Anuidade Produto (CORRIGIDO: Botões + e Save) ---
+// --- View 5: Anuidade Produto ---
 function ViewAnuidadeProduto() {
   const [anuidades, setAnuidades] = useState(mockAnuidadeProdutos);
   const [regras, setRegras] = useState(mockRegrasDesconto);
@@ -2054,7 +2062,7 @@ function ViewAnuidadeProduto() {
   );
 }
 
-// --- View 6: Configurações do Produto (CORRIGIDO: Botão + e Todos Campos) ---
+// --- View 6: Configurações do Produto (ATUALIZADA - NOVOS CAMPOS) ---
 function ViewConfiguracoesProduto() {
   const [configs, setConfigs] = useState(mockConfiguracoesProduto);
 
@@ -2065,7 +2073,8 @@ function ViewConfiguracoesProduto() {
   const addConfig = () => {
     setConfigs([...configs, {
       id: Date.now(), nome: 'Novo Produto', multa: 0, mora: 0, juros: 0,
-      percRotativo: 0, percSaque: 0, percJurosEmissor: 0, percJurosCrediario: 0, percParcelamentoFatura: 0,
+      percRotativo: 0, percSaque: 0, percJurosEmissor: 0, percJurosCrediario: 0, 
+      percParcelamentoFatura: 0, percParcelamentoRotativo: 0,
       custosReposicao: [{ cooperativa: 'Padrão', valor: 0 }]
     }]);
   };
@@ -2098,12 +2107,21 @@ function ViewConfiguracoesProduto() {
             </div>
             
             {/* Taxas Gerais */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
                <div><label className="text-xs text-gray-500 font-bold block mb-1">Multa (%)</label><input type="number" value={prod.multa} onChange={(e) => updateVal(prod.id, 'multa', e.target.value)} className="w-full border rounded p-2 bg-gray-50" /></div>
                <div><label className="text-xs text-gray-500 font-bold block mb-1">Mora (R$)</label><input type="number" value={prod.mora} onChange={(e) => updateVal(prod.id, 'mora', e.target.value)} className="w-full border rounded p-2 bg-gray-50" /></div>
                <div><label className="text-xs text-gray-500 font-bold block mb-1">Juros Rotativo (%)</label><input type="number" value={prod.percRotativo} onChange={(e) => updateVal(prod.id, 'percRotativo', e.target.value)} className="w-full border rounded p-2 bg-gray-50" /></div>
                <div><label className="text-xs text-gray-500 font-bold block mb-1">Taxa Saque (%)</label><input type="number" value={prod.percSaque} onChange={(e) => updateVal(prod.id, 'percSaque', e.target.value)} className="w-full border rounded p-2 bg-gray-50" /></div>
-               <div><label className="text-xs text-gray-500 font-bold block mb-1">Juros Parc. Fatura (%)</label><input type="number" value={prod.percParcelamentoFatura} onChange={(e) => updateVal(prod.id, 'percParcelamentoFatura', e.target.value)} className="w-full border rounded p-2 bg-gray-50" /></div>
+               
+               {/* Novos Campos */}
+               <div>
+                 <label className="text-xs text-gray-500 font-bold block mb-1">Refinanciamento de fatura(%)</label>
+                 <input type="number" value={prod.percParcelamentoFatura} onChange={(e) => updateVal(prod.id, 'percParcelamentoFatura', e.target.value)} className="w-full border rounded p-2 bg-gray-50" />
+               </div>
+               <div>
+                 <label className="text-xs text-gray-500 font-bold block mb-1">Juros Parc. Rotativo (%)</label>
+                 <input type="number" value={prod.percParcelamentoRotativo} onChange={(e) => updateVal(prod.id, 'percParcelamentoRotativo', e.target.value)} className="w-full border rounded p-2 bg-gray-50" />
+               </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -2890,7 +2908,7 @@ function ViewAlterarVencimento() {
 }
 
 // =======================================================================
-// 13. A PÁGINA DE RELATÓRIOS (ATUALIZADA E DETALHADA)
+// 13. A PÁGINA DE RELATÓRIOS (ATUALIZADA COM NOVOS FILTROS)
 // =======================================================================
 
 // --- Tipos e Mocks ---
@@ -2928,6 +2946,19 @@ const mockTiposDeRelatorios: RelatorioTipo[] = [
   { id: 'faturas', titulo: 'Faturas Pagas', desc: 'Relação de faturas liquidadas', gerados: 1, icon: FileCheck },
   { id: 'transacoes', titulo: 'Transações', desc: 'Débito e Crédito detalhado', gerados: 1, icon: List },
   { id: 'bins', titulo: 'Relatório de Bins', desc: 'Cartões emitidos vs disponibilizados', gerados: 0, icon: CreditCardIcon },
+  { id: 'cartoes_atraso', titulo: 'Cartões em Atraso', desc: 'Cooperados com faturas vencidas', gerados: 1, icon: CalendarX },
+  { id: 'pagamentos', titulo: 'Pagamentos', desc: 'Todos os pagamentos realizados', gerados: 0, icon: Banknote },
+  { id: 'parcelamentos_fat', titulo: 'Parcelamentos', desc: 'Parcelamentos de faturas', gerados: 0, icon: PieChart },
+  { id: 'receitas_despesas', titulo: 'Receitas e Despesas', desc: 'Movimentações financeiras', gerados: 0, icon: AreaChart },
+  { id: 'cartoes', titulo: 'Cadastro de Cartões', desc: 'Base completa de cartões', gerados: 1, icon: Contact },
+  { id: 'parcelamentos_rot', titulo: 'Parcelamentos Rotativos', desc: 'Parcelamentos de juros rotativos', gerados: 0, icon: PieChart },
+  { id: 'resgates', titulo: 'Resgates do Programa de Recompensas', desc: 'Todos os resgates de pontos', gerados: 0, icon: Users },
+  { id: 'ajustes_central', titulo: 'Ajustes da Central', desc: 'Lançamentos manuais e estornos', gerados: 0, icon: Edit2 },
+  { id: 'cartoes_bloq', titulo: 'Cartões Bloqueados por Emissão', desc: 'Cartões que nunca foram ativados', gerados: 0, icon: ShieldAlert },
+  { id: 'cadoc', titulo: 'CADOC 3040 - Coobrigações', desc: 'Relatório para Banco Central', gerados: 0, icon: Building },
+  { id: 'limites_gerencial', titulo: 'Limites Gerencial', desc: 'Limites de crédito totais', gerados: 1, icon: BarChart2 },
+  { id: 'irpi', titulo: 'IRPI - Imposto de Renda', desc: 'Informe de imposto de renda', gerados: 0, icon: FileText },
+  { id: 'cessao_credito', titulo: 'Cessão de Crédito (Honra de Aval)', desc: 'Cooperados em cessão de crédito', gerados: 0, icon: AlertOctagon },
 ];
 
 // --- MOCKS DE DADOS DETALHADOS PARA OS RELATÓRIOS NOVOS ---
@@ -2949,7 +2980,6 @@ const mockDadosServicos = [
   { id: 1, cpfCnpj: '123.456.789-00', nome: 'Ana Beatriz Silva', idCartao: '900103', cartaoMascarado: '4111 11** **** 1111', valor: 29.90, dataContratacao: '10/01/2025', cooperativa: 'Crediserv', pa: 'PA 05', produto: 'Seguro PPR', status: '4 Parcelas Restantes' },
   { id: 2, cpfCnpj: '543.210.987-00', nome: 'João Pedro Costa', idCartao: '900104', cartaoMascarado: '4111 00** **** 1111', valor: 5.90, dataContratacao: '01/06/2025', cooperativa: 'Coopesa', pa: 'PA 04', produto: 'Notificação SMS', status: 'Quitado / Recorrente' },
 ];
-
 
 // --- Componente PAI da Página Relatórios ---
 function PaginaRelatorios({ usuario }: { usuario: User }) {
@@ -2985,7 +3015,7 @@ function PaginaRelatorios({ usuario }: { usuario: User }) {
   );
 }
 
-// --- Componente Visualização Detalhada do Relatório (NOVO) ---
+// --- Componente Visualização Detalhada do Relatório ---
 function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => void }) {
   const getTitulo = () => mockTiposDeRelatorios.find(t => t.id === tipo)?.titulo || 'Relatório';
 
@@ -3133,7 +3163,7 @@ function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => 
   );
 }
 
-// --- Componentes Originais da Página Relatórios (Mantidos e Atualizados) ---
+// --- Componentes Originais da Página Relatórios (ATUALIZADO COM FILTROS COOP/PA) ---
 function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoRelatorio[]; usuario: User }) {
   const getStatusClass = (status: HistoricoRelatorio['status']) => {
     switch (status) {
@@ -3151,6 +3181,9 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
     }
   };
 
+  // Mock de PAs (seriam filtrados dinamicamente em produção)
+  const pas = mockPontosAtendimento; 
+
   return (
     <div className="bg-white rounded-xl shadow-lg">
       <div className="flex flex-col p-5 border-b border-gray-200 space-y-4">
@@ -3164,8 +3197,32 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
           </button>
         </div>
 
-        {/* --- FILTROS (CORRIGIDO: Label CPF ou CNPJ) --- */}
-        <div className="pt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* --- FILTROS COMPLETOS --- */}
+        <div className="pt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          
+          {/* Filtro Cooperativa */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Cooperativa</label>
+            <select className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md">
+              <option value="">Todas</option>
+              {mockCooperativas.filter(c => c.tipo === 'Singular').map(c => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro PA */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700">PA</label>
+            <select className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md">
+              <option value="">Todos</option>
+              {pas.map(pa => (
+                <option key={pa.id} value={pa.id}>{pa.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Produto */}
           <div>
             <label className="block text-sm font-medium text-gray-700">Produto</label>
             <select className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md">
@@ -3175,6 +3232,8 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
               <option value="gold">Gold</option>
             </select>
           </div>
+
+          {/* Filtro Período */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700">Período</label>
             <div className="flex items-center space-x-2">
@@ -3183,8 +3242,9 @@ function ViewHistoricoRelatorios({ historico, usuario }: { historico: HistoricoR
               <input type="date" className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
             </div>
           </div>
+
+          {/* Filtro Documento */}
           <div>
-            {/* ALTERAÇÃO AQUI: LABEL CPF OU CNPJ */}
             <label className="block text-sm font-medium text-gray-700">CPF ou CNPJ</label>
             <input type="text" placeholder="Documento..." className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md" />
           </div>
@@ -3605,7 +3665,7 @@ function ModalNovaCentral({ onClose }: { onClose: () => void }) {
 }
 
 // =======================================================================
-// 15. A PÁGINA DE USUÁRIOS (Backoffice) - (ATUALIZADO)
+// 15. A PÁGINA DE USUÁRIOS (Backoffice) - (ATUALIZADO COM DETALHES DE AUDITORIA)
 // =======================================================================
 
 // --- Definição de Tipos para Usuários ---
@@ -3622,19 +3682,23 @@ type UsuarioSistema = {
   status: 'Ativo' | 'Inativo';
 };
 
-// --- Definição de Tipos para Logs de Auditoria (NOVOS CAMPOS) ---
+// --- Definição de Tipos para Logs de Auditoria (ATUALIZADO) ---
 type LogAuditoria = {
   id: number;
   dataHora: string;          
   acao: 'CREATE' | 'UPDATE' | 'DELETE' | 'BLOCK';
-  descricao: string;         // Histórico de alterações
-  usuarioResponsavel: string;// Quem realizou
-  cooperativaRealizou: string; // Cooperativa que realizou
-  paRealizou: string;        // PA que realizou
+  descricao: string;
   
-  // Dados do Alvo da Alteração
-  afetadoCpfCnpj: string;    // CPF ou CNPJ do cooperado alterado
-  afetadoContaCartao: string;// Conta cartão vinculada
+  // Quem realizou a ação (Novo detalhamento)
+  usuarioResponsavelNome: string;  // Nome completo
+  usuarioResponsavelLogin: string; // Login/Email
+  cooperativaRealizou: string;
+  paRealizou: string;
+  
+  // Quem sofreu a ação (Novo detalhamento)
+  afetadoNome: string;       // Nome do Cooperado
+  afetadoCpfCnpj: string;    // CPF/CNPJ
+  afetadoContaCartao: string;
 };
 
 // --- Dados Mockados da Página Usuários ---
@@ -3644,16 +3708,18 @@ const mockUsuarios: UsuarioSistema[] = [
   { id: 3, nome: 'Maria Oliveira', cpf: '456.789.123-22', email: 'maria@pa03.com.br', perfil: 'Atendente', grupo: 'PA 03', ultimoAcesso: '16/11/2025 18:00', status: 'Inativo' },
 ];
 
-// --- Dados Mockados de Logs (NOVOS EXEMPLOS) ---
+// --- Dados Mockados de Logs (ATUALIZADO) ---
 const mockLogsAuditoria: LogAuditoria[] = [
   { 
     id: 1, 
     dataHora: '17/11/2025 14:45:22', 
     acao: 'UPDATE', 
     descricao: 'Alteração de limite de crédito de R$ 5.000 para R$ 8.000',
-    usuarioResponsavel: 'Patricia Holanda',
+    usuarioResponsavelNome: 'Patricia Holanda',
+    usuarioResponsavelLogin: 'patricia.holanda@credisis.com.br',
     cooperativaRealizou: 'Credisis Central',
     paRealizou: '-',
+    afetadoNome: 'Carlos Eduardo Souza', // Nome incluído
     afetadoCpfCnpj: '111.222.333-44',
     afetadoContaCartao: '900102'
   },
@@ -3662,9 +3728,11 @@ const mockLogsAuditoria: LogAuditoria[] = [
     dataHora: '17/11/2025 10:30:15', 
     acao: 'BLOCK', 
     descricao: 'Bloqueio preventivo de cartão por suspeita de fraude',
-    usuarioResponsavel: 'João da Silva',
+    usuarioResponsavelNome: 'João da Silva',
+    usuarioResponsavelLogin: 'joao@coopesa.com.br',
     cooperativaRealizou: 'Coopesa',
     paRealizou: 'PA 03',
+    afetadoNome: 'Enzo Filho Kids', // Nome incluído
     afetadoCpfCnpj: '555.666.777-88',
     afetadoContaCartao: '900104'
   },
@@ -3673,9 +3741,11 @@ const mockLogsAuditoria: LogAuditoria[] = [
     dataHora: '16/11/2025 09:15:00', 
     acao: 'CREATE', 
     descricao: 'Cadastro de serviço adicional: Seguro PPR',
-    usuarioResponsavel: 'Maria Oliveira',
+    usuarioResponsavelNome: 'Maria Oliveira',
+    usuarioResponsavelLogin: 'maria@pa03.com.br',
     cooperativaRealizou: 'Coopesa',
     paRealizou: 'PA 03',
+    afetadoNome: 'Ana Beatriz Silva', // Nome incluído
     afetadoCpfCnpj: '999.888.777-66',
     afetadoContaCartao: '900103'
   },
@@ -3684,9 +3754,11 @@ const mockLogsAuditoria: LogAuditoria[] = [
     dataHora: '16/11/2025 08:20:10', 
     acao: 'UPDATE', 
     descricao: 'Atualização de endereço de entrega do cartão',
-    usuarioResponsavel: 'Sistema Integrado',
+    usuarioResponsavelNome: 'Sistema Integrado',
+    usuarioResponsavelLogin: 'system@hubcoop.adm',
     cooperativaRealizou: 'Credisis Central',
     paRealizou: '-',
+    afetadoNome: 'Fernanda Lima Santos', // Nome incluído
     afetadoCpfCnpj: '123.456.789-00',
     afetadoContaCartao: '900101'
   },
@@ -3852,10 +3924,12 @@ function ViewLogsAuditoria({ logs }: { logs: LogAuditoria[] }) {
   const [filtroData, setFiltroData] = useState('');
 
   const logsFiltrados = logs.filter(log => {
-    // Filtra por Descrição, Usuário, Cooperado (CPF/CNPJ) ou Cooperativa
+    // Filtra por Descrição, Usuário (Nome/Login), Cooperado (Nome/CPF) ou Cooperativa
     const matchBusca = filtroBusca === '' || 
       log.descricao.toLowerCase().includes(filtroBusca.toLowerCase()) ||
-      log.usuarioResponsavel.toLowerCase().includes(filtroBusca.toLowerCase()) ||
+      log.usuarioResponsavelNome.toLowerCase().includes(filtroBusca.toLowerCase()) ||
+      log.usuarioResponsavelLogin.toLowerCase().includes(filtroBusca.toLowerCase()) ||
+      log.afetadoNome.toLowerCase().includes(filtroBusca.toLowerCase()) ||
       log.afetadoCpfCnpj.includes(filtroBusca) ||
       log.cooperativaRealizou.toLowerCase().includes(filtroBusca.toLowerCase());
 
@@ -3875,7 +3949,7 @@ function ViewLogsAuditoria({ logs }: { logs: LogAuditoria[] }) {
           <div className="relative w-full md:w-1/2">
             <input
               type="text"
-              placeholder="Buscar por CPF, Histórico, Usuário ou Cooperativa..."
+              placeholder="Buscar por Nome, Login, CPF, Histórico..."
               value={filtroBusca}
               onChange={(e) => setFiltroBusca(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-hub-teal focus:border-hub-teal"
@@ -3897,11 +3971,11 @@ function ViewLogsAuditoria({ logs }: { logs: LogAuditoria[] }) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data/Hora</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Alteração</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Histórico</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem (Coop/PA)</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário Responsável</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cooperado Afetado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conta Cartão</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -3920,21 +3994,26 @@ function ViewLogsAuditoria({ logs }: { logs: LogAuditoria[] }) {
                     </span>
                 </td>
 
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium max-w-md truncate" title={log.descricao}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium max-w-xs truncate" title={log.descricao}>
                   {log.descricao}
+                </td>
+
+                {/* Nova Coluna: Usuário Responsável */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm font-medium text-gray-900">{log.usuarioResponsavelNome}</div>
+                  <div className="text-xs text-gray-500">{log.usuarioResponsavelLogin}</div>
+                </td>
+
+                {/* Nova Coluna: Cooperado Afetado */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                   <div className="text-sm font-medium text-gray-900">{log.afetadoNome}</div>
+                   <div className="text-xs text-gray-500 font-mono">{log.afetadoCpfCnpj}</div>
+                   <div className="text-[10px] text-gray-400">Cartão: {log.afetadoContaCartao}</div>
                 </td>
 
                 <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
                   <div className="font-semibold">{log.cooperativaRealizou}</div>
                   <div className="text-gray-400">{log.paRealizou}</div>
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-600">
-                   CPF/CNPJ: <span className="font-mono font-bold">{log.afetadoCpfCnpj}</span>
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-600 bg-gray-50">
-                   {log.afetadoContaCartao}
                 </td>
               </tr>
             ))}
@@ -5720,15 +5799,17 @@ function ModalGerenciarServico({ servico, onClose }: { servico: ServicoAdicional
   );
 }
 // =======================================================================
-// 22. PÁGINA DE BAIXAS MANUAIS (APENAS CENTRAL)
+// 22. PÁGINA DE LANÇAMENTOS  - APENAS CENTRAL
 // =======================================================================
 
 // --- Tipos ---
-type TipoBaixa = 'Parcelamento' | 'Compra Integral' | 'Fatura' | 'Anuidade' | 'PPR';
+type CategoriaLancamento = 'Parcelamento' | 'Compra Integral' | 'Fatura' | 'Anuidade' | 'PPR';
+type TipoOperacao = 'Credito' | 'Debito';
 
-type BaixaHistorico = {
+type LancamentoHistorico = {
   id: number;
-  tipo: TipoBaixa;
+  categoria: CategoriaLancamento;
+  operacao: TipoOperacao; // Crédito ou Débito
   dataHora: string;
   valor: number;
   status: 'Concluído' | 'Estornado';
@@ -5736,19 +5817,20 @@ type BaixaHistorico = {
   // Dados do Cartão/Conta
   contaCartao: string;
   idCartao: string;
-  cartaoMascarado: string; // 6 primeiros + 4 últimos
+  cartaoMascarado: string;
   
   // Auditoria
-  quemRealizou: string;    // Usuário logado que fez a ação
-  quemSolicitou: string;   // Quem pediu (ex: Nome do Cooperado ou Gerente)
+  quemRealizou: string;
+  quemSolicitou: string;
   motivo: string;
 };
 
 // --- Mocks ---
-const mockHistoricoBaixas: BaixaHistorico[] = [
+const mockHistoricoLancamentos: LancamentoHistorico[] = [
   {
     id: 1,
-    tipo: 'Anuidade',
+    categoria: 'Anuidade',
+    operacao: 'Credito',
     dataHora: '17/11/2025 10:30',
     valor: 450.00,
     status: 'Concluído',
@@ -5761,20 +5843,8 @@ const mockHistoricoBaixas: BaixaHistorico[] = [
   },
   {
     id: 2,
-    tipo: 'Compra Integral',
-    dataHora: '16/11/2025 15:45',
-    valor: 1250.90,
-    status: 'Concluído',
-    contaCartao: '54321-0',
-    idCartao: '900102',
-    cartaoMascarado: '5200 00** **** 2045',
-    quemRealizou: 'Patricia Holanda (Credisis)',
-    quemSolicitou: 'Gerente da Conta',
-    motivo: 'Contestação deferida - Fraude comprovada'
-  },
-  {
-    id: 3,
-    tipo: 'Fatura',
+    categoria: 'Fatura',
+    operacao: 'Debito',
     dataHora: '15/11/2025 09:00',
     valor: 3200.00,
     status: 'Concluído',
@@ -5783,27 +5853,27 @@ const mockHistoricoBaixas: BaixaHistorico[] = [
     cartaoMascarado: '4111 00** **** 1111',
     quemRealizou: 'Sistema Automático',
     quemSolicitou: 'Processamento Noturno',
-    motivo: 'Baixa por pagamento em duplicidade'
+    motivo: 'Acerto de processamento'
   }
 ];
 
 // --- Componente Principal ---
-function PaginaBaixas({ usuario }: { usuario: User }) {
+function PaginaLancamentos({ usuario }: { usuario: User }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filtroTipo, setFiltroTipo] = useState('');
+  const [filtroCat, setFiltroCat] = useState('');
   const [showModal, setShowModal] = useState(false);
 
   // Filtros
-  const baixasFiltradas = mockHistoricoBaixas.filter(b => {
+  const lancamentosFiltrados = mockHistoricoLancamentos.filter(b => {
     const matchSearch = 
       b.cartaoMascarado.includes(searchTerm) || 
       b.idCartao.includes(searchTerm) || 
       b.contaCartao.includes(searchTerm) ||
       b.quemSolicitou.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchTipo = filtroTipo === '' || b.tipo === filtroTipo;
+    const matchCat = filtroCat === '' || b.categoria === filtroCat;
 
-    return matchSearch && matchTipo;
+    return matchSearch && matchCat;
   });
 
   return (
@@ -5812,16 +5882,16 @@ function PaginaBaixas({ usuario }: { usuario: User }) {
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-5 rounded-xl shadow-lg">
         <div>
           <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-            <ArrowDownCircle className="w-6 h-6 mr-2 text-hub-teal"/> Central de Baixas
+            <ArrowDownCircle className="w-6 h-6 mr-2 text-hub-teal"/> Central de Lançamentos
           </h3>
-          <p className="text-sm text-gray-500">Gestão de estornos, pagamentos manuais e isenções.</p>
+          <p className="text-sm text-gray-500">Gestão de créditos e débitos manuais (baixas e cobranças).</p>
         </div>
         <button 
           onClick={() => setShowModal(true)}
           className="mt-4 md:mt-0 flex items-center px-4 py-2 text-white rounded-lg shadow-sm hover:opacity-90 transition" 
           style={{ backgroundColor: HUB_BRAND_COLOR }}
         >
-          <Plus className="w-5 h-5 mr-2" /> Nova Baixa Manual
+          <Plus className="w-5 h-5 mr-2" /> Novo Lançamento
         </button>
       </div>
 
@@ -5841,11 +5911,11 @@ function PaginaBaixas({ usuario }: { usuario: User }) {
           <div>
             <select 
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-600"
-              value={filtroTipo}
-              onChange={(e) => setFiltroTipo(e.target.value)}
+              value={filtroCat}
+              onChange={(e) => setFiltroCat(e.target.value)}
             >
-              <option value="">Todos os Tipos</option>
-              <option value="Fatura">Pagamento de Fatura</option>
+              <option value="">Todas as Categorias</option>
+              <option value="Fatura">Fatura</option>
               <option value="Compra Integral">Compra Integral</option>
               <option value="Parcelamento">Parcelamento</option>
               <option value="Anuidade">Anuidade</option>
@@ -5859,164 +5929,530 @@ function PaginaBaixas({ usuario }: { usuario: User }) {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data/Hora</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operação</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoria</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Detalhes do Cartão</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auditoria (Quem/Motivo)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auditoria</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {baixasFiltradas.map((baixa) => (
-                <tr key={baixa.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{baixa.dataHora}</td>
+              {lancamentosFiltrados.map((lanc) => (
+                <tr key={lanc.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{lanc.dataHora}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded text-xs font-bold border ${
-                      baixa.tipo === 'Fatura' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      baixa.tipo === 'Anuidade' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                      'bg-gray-50 text-gray-700 border-gray-200'
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold border ${
+                      lanc.operacao === 'Credito' 
+                      ? 'bg-green-50 text-green-700 border-green-200' 
+                      : 'bg-red-50 text-red-700 border-red-200'
                     }`}>
-                      {baixa.tipo}
+                      {lanc.operacao === 'Credito' ? 'Crédito' : 'Débito'}
                     </span>
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
+                    {lanc.categoria}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="font-mono text-gray-800">{baixa.cartaoMascarado}</div>
-                    <div className="text-xs text-gray-500">ID: {baixa.idCartao} | Conta: {baixa.contaCartao}</div>
+                    <div className="font-mono text-gray-800">{lanc.cartaoMascarado}</div>
+                    <div className="text-xs text-gray-500">ID: {lanc.idCartao}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                    {baixa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    {lanc.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    <div><span className="font-bold text-xs">Realizado:</span> {baixa.quemRealizou}</div>
-                    <div><span className="font-bold text-xs">Solicitado:</span> {baixa.quemSolicitou}</div>
-                    <div className="text-xs mt-1 italic text-gray-500">"{baixa.motivo}"</div>
+                    <div><span className="font-bold text-xs">Realizado:</span> {lanc.quemRealizou}</div>
+                    <div><span className="font-bold text-xs">Solicitado:</span> {lanc.quemSolicitou}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="text-xs font-bold text-green-700 flex items-center">
-                      <CheckCircle2 className="w-4 h-4 mr-1"/> {baixa.status}
+                      <CheckCircle2 className="w-4 h-4 mr-1"/> {lanc.status}
                     </span>
                   </td>
                 </tr>
               ))}
-              {baixasFiltradas.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-500">Nenhum registro encontrado.</td></tr>
+              {lancamentosFiltrados.length === 0 && (
+                <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhum registro encontrado.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Modal Nova Baixa */}
+      {/* Modal Lançamentos (Seleção + Formulário) */}
       {showModal && (
-        <ModalNovaBaixa usuario={usuario} onClose={() => setShowModal(false)} />
+        <ModalNovoLancamento usuario={usuario} onClose={() => setShowModal(false)} />
       )}
     </div>
   );
 }
 
-// --- Componente Modal Nova Baixa ---
-function ModalNovaBaixa({ usuario, onClose }: { usuario: User; onClose: () => void }) {
-  const [tipo, setTipo] = useState<TipoBaixa>('Fatura');
-  const [valor, setValor] = useState('');
+// --- Componente Modal Novo Lançamento (Com Etapas) ---
+function ModalNovoLancamento({ usuario, onClose }: { usuario: User; onClose: () => void }) {
+  const [etapa, setEtapa] = useState<'selecao' | 'formulario'>('selecao');
+  const [tipoOperacao, setTipoOperacao] = useState<TipoOperacao | null>(null);
   
+  const [categoria, setCategoria] = useState<CategoriaLancamento>('Fatura');
+  const [valor, setValor] = useState('');
+
+  const handleSelectTipo = (tipo: TipoOperacao) => {
+    setTipoOperacao(tipo);
+    setEtapa('formulario');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert('Baixa registrada com sucesso!');
+    alert(`Lançamento a ${tipoOperacao} registrado com sucesso!`);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+        
+        {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
-          <h3 className="text-xl font-semibold text-gray-800">Registrar Nova Baixa</h3>
+          <div>
+            <h3 className="text-xl font-semibold text-gray-800">
+              {etapa === 'selecao' ? 'Novo Lançamento' : `Registrar Lançamento a ${tipoOperacao === 'Credito' ? 'Crédito' : 'Débito'}`}
+            </h3>
+            {etapa === 'formulario' && (
+              <p className="text-xs text-gray-500 mt-1">
+                {tipoOperacao === 'Credito' ? 'O portador já realizou o pagamento.' : 'O portador ainda irá pagar.'}
+              </p>
+            )}
+          </div>
           <button onClick={onClose}><X className="w-6 h-6 text-gray-400 hover:text-gray-600" /></button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Linha 1 */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Baixa</label>
-              <select 
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value as TipoBaixa)}
-              >
-                <option value="Fatura">Pagamento de Fatura</option>
-                <option value="Compra Integral">Compra Integral</option>
-                <option value="Parcelamento">Parcelamento</option>
-                <option value="Anuidade">Anuidade</option>
-                <option value="PPR">PPR</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
-              <input 
-                type="number" 
-                required
-                step="0.01"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
-                placeholder="0,00"
-              />
-            </div>
-          </div>
-
-          {/* Linha 2: Identificação do Cartão */}
-          <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
-            <h4 className="text-sm font-bold text-gray-700 border-b pb-1">Dados do Cartão</h4>
-            <div className="grid grid-cols-3 gap-3">
-               <div className="col-span-1">
-                 <label className="block text-xs text-gray-500">ID do Cartão</label>
-                 <input type="text" placeholder="Ex: 900103" className="w-full px-2 py-1 border rounded text-sm"/>
-               </div>
-               <div className="col-span-2">
-                 <label className="block text-xs text-gray-500">Número (6 primeiros + 4 últimos)</label>
-                 <div className="flex items-center gap-2">
-                   <input type="text" maxLength={6} placeholder="411111" className="w-20 px-2 py-1 border rounded text-sm text-center"/>
-                   <span>******</span>
-                   <input type="text" maxLength={4} placeholder="1234" className="w-16 px-2 py-1 border rounded text-sm text-center"/>
-                 </div>
-               </div>
-               <div className="col-span-3">
-                 <label className="block text-xs text-gray-500">Conta Cartão</label>
-                 <input type="text" className="w-full px-2 py-1 border rounded text-sm"/>
-               </div>
-            </div>
-          </div>
-
-          {/* Linha 3: Auditoria */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Quem Solicitou?</label>
-              <input type="text" placeholder="Ex: Gerente João" className="w-full px-3 py-2 border border-gray-300 rounded-lg"/>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Responsável (Logado)</label>
-              <input type="text" value={usuario.nome} disabled className="w-full px-3 py-2 border border-gray-200 bg-gray-100 rounded-lg text-gray-500"/>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Motivo da Baixa</label>
-            <textarea 
-              rows={3} 
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
-              placeholder="Descreva detalhadamente o motivo..."
-            ></textarea>
-          </div>
-
-          <div className="pt-4 flex justify-end space-x-3 border-t mt-4">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+        {/* --- ETAPA 1: SELEÇÃO --- */}
+        {etapa === 'selecao' && (
+          <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <button 
-              type="submit" 
-              className="px-6 py-2 text-white rounded-lg shadow-sm hover:opacity-90"
-              style={{ backgroundColor: HUB_BRAND_COLOR }}
+              onClick={() => handleSelectTipo('Credito')}
+              className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
             >
-              Confirmar Baixa
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200">
+                <ArrowDownCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Lançamento a Crédito</h4>
+              <p className="text-sm text-gray-500 text-center">
+                Selecione se o portador <strong>já realizou o pagamento</strong>.
+              </p>
+            </button>
+
+            <button 
+              onClick={() => handleSelectTipo('Debito')}
+              className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group"
+            >
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-red-200">
+                <ArrowDownCircle className="w-8 h-8 text-red-600 transform rotate-180" />
+              </div>
+              <h4 className="text-lg font-bold text-gray-800 mb-2">Lançamento a Débito</h4>
+              <p className="text-sm text-gray-500 text-center">
+                Selecione se o portador <strong>ainda irá pagar</strong> (cobrança).
+              </p>
             </button>
           </div>
-        </form>
+        )}
+
+        {/* --- ETAPA 2: FORMULÁRIO (IGUAL AO ANTERIOR) --- */}
+        {etapa === 'formulario' && (
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+            {/* Linha 1 */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Item (Categoria)</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value as CategoriaLancamento)}
+                >
+                  <option value="Fatura">Pagamento de Fatura</option>
+                  <option value="Compra Integral">Compra Integral</option>
+                  <option value="Parcelamento">Parcelamento</option>
+                  <option value="Anuidade">Anuidade</option>
+                  <option value="PPR">PPR</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                <input 
+                  type="number" 
+                  required
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
+                  placeholder="0,00"
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Linha 2: Identificação do Cartão */}
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+              <h4 className="text-sm font-bold text-gray-700 border-b pb-1">Dados do Cartão</h4>
+              <div className="grid grid-cols-3 gap-3">
+                 <div className="col-span-1">
+                   <label className="block text-xs text-gray-500">ID do Cartão</label>
+                   <input type="text" placeholder="Ex: 900103" className="w-full px-2 py-1 border rounded text-sm"/>
+                 </div>
+                 <div className="col-span-2">
+                   <label className="block text-xs text-gray-500">Número (6 primeiros + 4 últimos)</label>
+                   <div className="flex items-center gap-2">
+                     <input type="text" maxLength={6} placeholder="411111" className="w-20 px-2 py-1 border rounded text-sm text-center"/>
+                     <span>******</span>
+                     <input type="text" maxLength={4} placeholder="1234" className="w-16 px-2 py-1 border rounded text-sm text-center"/>
+                   </div>
+                 </div>
+                 <div className="col-span-3">
+                   <label className="block text-xs text-gray-500">Conta Cartão</label>
+                   <input type="text" className="w-full px-2 py-1 border rounded text-sm"/>
+                 </div>
+              </div>
+            </div>
+
+            {/* Linha 3: Auditoria */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quem Solicitou?</label>
+                <input type="text" placeholder="Ex: Gerente João" className="w-full px-3 py-2 border border-gray-300 rounded-lg"/>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Responsável (Logado)</label>
+                <input type="text" value={usuario.nome} disabled className="w-full px-3 py-2 border border-gray-200 bg-gray-100 rounded-lg text-gray-500"/>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Motivo do Lançamento</label>
+              <textarea 
+                rows={3} 
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
+                placeholder="Descreva detalhadamente o motivo..."
+              ></textarea>
+            </div>
+
+            <div className="pt-4 flex justify-between border-t mt-4">
+              <button 
+                type="button" 
+                onClick={() => setEtapa('selecao')} 
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg"
+              >
+                Voltar
+              </button>
+              <div className="flex space-x-3">
+                <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 text-white rounded-lg shadow-sm hover:opacity-90"
+                  style={{ backgroundColor: HUB_BRAND_COLOR }}
+                >
+                  Confirmar Lançamento
+                </button>
+              </div>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+// =======================================================================
+// 23. PÁGINA DE ADMINISTRAÇÃO DAS CARTEIRAS VIRTUAIS (NOVA)
+// =======================================================================
+
+// --- Tipos ---
+type WalletProvider = 'Apple Pay' | 'Google Pay' | 'Samsung Pay';
+type MetodoValidacao = 'OTP (SMS)' | 'App-to-App' | 'Call Center';
+
+type SolicitacaoCarteira = {
+  id: number;
+  cooperado: string;
+  cartaoMascarado: string;
+  idCartao: string;
+  produto: string;
+  dataSolicitacao: string;
+  wallet: WalletProvider;
+  metodo: MetodoValidacao; // O método exigido ou usado para validação
+  status: 'Pendente' | 'Aprovado' | 'Rejeitado';
+  scoreRisco?: string; // Apenas visual
+};
+
+// --- Mocks ---
+const mockSolicitacoesWallet: SolicitacaoCarteira[] = [
+  {
+    id: 1,
+    cooperado: 'Ana Beatriz Silva',
+    cartaoMascarado: '4111 11** **** 9988',
+    idCartao: '900103',
+    produto: 'Visa Infinite',
+    dataSolicitacao: '17/11/2025 10:45',
+    wallet: 'Apple Pay',
+    metodo: 'App-to-App',
+    status: 'Pendente',
+    scoreRisco: 'Baixo'
+  },
+  {
+    id: 2,
+    cooperado: 'Carlos Eduardo Souza',
+    cartaoMascarado: '5200 00** **** 2045',
+    idCartao: '900102',
+    produto: 'Visa Gold',
+    dataSolicitacao: '17/11/2025 11:20',
+    wallet: 'Google Pay',
+    metodo: 'OTP (SMS)',
+    status: 'Pendente',
+    scoreRisco: 'Médio'
+  },
+  {
+    id: 3,
+    cooperado: 'João Pedro Costa',
+    cartaoMascarado: '4111 00** **** 1111',
+    idCartao: '900104',
+    produto: 'Visa Classic',
+    dataSolicitacao: '16/11/2025 15:00',
+    wallet: 'Samsung Pay',
+    metodo: 'Call Center',
+    status: 'Rejeitado',
+    scoreRisco: 'Alto'
+  }
+];
+
+// --- Componente Principal ---
+function PaginaCarteirasVirtuais({ usuario }: { usuario: User }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtroStatus, setFiltroStatus] = useState('Pendente');
+  const [solicitacaoSelecionada, setSolicitacaoSelecionada] = useState<SolicitacaoCarteira | null>(null);
+
+  const solicitacoesFiltradas = mockSolicitacoesWallet.filter(s => {
+    const matchSearch = 
+      s.cooperado.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      s.cartaoMascarado.includes(searchTerm) ||
+      s.idCartao.includes(searchTerm);
+    
+    const matchStatus = filtroStatus === 'Todos' || s.status === filtroStatus;
+
+    return matchSearch && matchStatus;
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-5 rounded-xl shadow-lg">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+            <Smartphone className="w-6 h-6 mr-2 text-hub-teal"/> Carteiras Virtuais
+          </h3>
+          <p className="text-sm text-gray-500">Autorização de provisionamento de tokens (Apple, Google, Samsung).</p>
+        </div>
+        <div className="flex space-x-3 mt-4 md:mt-0">
+           <div className="bg-gray-100 px-3 py-1 rounded text-xs text-gray-600">
+              <strong>Pendentes:</strong> {mockSolicitacoesWallet.filter(s => s.status === 'Pendente').length}
+           </div>
+        </div>
+      </div>
+
+      {/* Filtros e Tabela */}
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="p-4 border-b border-gray-100 bg-gray-50 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Buscar Cooperado, Cartão ou ID..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-hub-teal"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          </div>
+          <div>
+            <select 
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-600"
+              value={filtroStatus}
+              onChange={(e) => setFiltroStatus(e.target.value)}
+            >
+              <option value="Todos">Todos os Status</option>
+              <option value="Pendente">Pendentes</option>
+              <option value="Aprovado">Aprovados</option>
+              <option value="Rejeitado">Rejeitados</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data/Hora</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cooperado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dados do Cartão</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Wallet</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Método Validação</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {solicitacoesFiltradas.map((sol) => (
+                <tr key={sol.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{sol.dataSolicitacao}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-bold text-gray-900">{sol.cooperado}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-mono text-gray-800">{sol.cartaoMascarado}</div>
+                    <div className="text-xs text-gray-500">ID: {sol.idCartao} | {sol.produto}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold border flex items-center w-max ${
+                      sol.wallet === 'Apple Pay' ? 'bg-gray-900 text-white border-gray-900' :
+                      sol.wallet === 'Google Pay' ? 'bg-white text-gray-700 border-gray-300' :
+                      'bg-blue-900 text-white border-blue-900'
+                    }`}>
+                      {sol.wallet}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {sol.metodo}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full ${
+                      sol.status === 'Aprovado' ? 'bg-green-100 text-green-800' :
+                      sol.status === 'Rejeitado' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {sol.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {sol.status === 'Pendente' && (
+                      <button 
+                        onClick={() => setSolicitacaoSelecionada(sol)}
+                        className="text-white px-3 py-1 rounded shadow-sm hover:opacity-90 text-xs font-bold bg-hub-teal transition-colors"
+                        style={{ backgroundColor: HUB_BRAND_COLOR }}
+                      >
+                        Avaliar
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {solicitacoesFiltradas.length === 0 && (
+                <tr><td colSpan={7} className="p-8 text-center text-gray-500">Nenhuma solicitação encontrada.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal de Aprovação/Negação */}
+      {solicitacaoSelecionada && (
+        <ModalAvaliarWallet 
+          solicitacao={solicitacaoSelecionada} 
+          onClose={() => setSolicitacaoSelecionada(null)} 
+        />
+      )}
+    </div>
+  );
+}
+
+// --- Componente Modal Avaliar Wallet ---
+function ModalAvaliarWallet({ solicitacao, onClose }: { solicitacao: SolicitacaoCarteira; onClose: () => void }) {
+  
+  const handleAction = (acao: 'Aprovar' | 'Negar') => {
+    alert(`Solicitação ${acao === 'Aprovar' ? 'APROVADA' : 'NEGADA'} com sucesso!\nWallet: ${solicitacao.wallet}\nCooperado: ${solicitacao.cooperado}`);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="flex justify-between items-center p-5 border-b bg-gray-50">
+          <h3 className="text-lg font-bold text-gray-800">Autorização de Provisionamento</h3>
+          <button onClick={onClose}><X className="w-6 h-6 text-gray-400 hover:text-gray-600" /></button>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          {/* Info Principal */}
+          <div className="flex items-center justify-center mb-4">
+             <div className="text-center">
+                <span className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-2 ${
+                      solicitacao.wallet === 'Apple Pay' ? 'bg-black text-white' :
+                      solicitacao.wallet === 'Google Pay' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
+                      'bg-blue-900 text-white'
+                }`}>
+                  Adicionar ao {solicitacao.wallet}
+                </span>
+                <p className="text-gray-500 text-xs">{solicitacao.dataSolicitacao}</p>
+             </div>
+          </div>
+
+          {/* Detalhes do Portador */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3 text-sm">
+             <div className="flex justify-between">
+               <span className="text-gray-500">Cooperado:</span>
+               <span className="font-bold text-gray-800">{solicitacao.cooperado}</span>
+             </div>
+             <div className="flex justify-between">
+               <span className="text-gray-500">Cartão:</span>
+               <span className="font-mono font-bold text-gray-800">{solicitacao.cartaoMascarado}</span>
+             </div>
+             <div className="flex justify-between">
+               <span className="text-gray-500">ID Cartão:</span>
+               <span className="font-medium text-gray-800">{solicitacao.idCartao}</span>
+             </div>
+             <div className="flex justify-between">
+               <span className="text-gray-500">Produto:</span>
+               <span className="font-medium text-gray-800">{solicitacao.produto}</span>
+             </div>
+          </div>
+
+          {/* Método de Validação */}
+          <div className="border-t pt-4">
+             <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Método de Validação Requerido</label>
+             <div className="flex items-center p-3 bg-blue-50 border border-blue-100 rounded-lg text-blue-800">
+                {solicitacao.metodo === 'OTP (SMS)' && <Smartphone className="w-5 h-5 mr-2"/>}
+                {solicitacao.metodo === 'App-to-App' && <CheckCircle2 className="w-5 h-5 mr-2"/>}
+                {solicitacao.metodo === 'Call Center' && <History className="w-5 h-5 mr-2"/>}
+                
+                <div>
+                  <span className="block font-bold">{solicitacao.metodo}</span>
+                  <span className="text-xs opacity-80">
+                    {solicitacao.metodo === 'OTP (SMS)' ? 'Enviar código para celular cadastrado.' : 
+                     solicitacao.metodo === 'App-to-App' ? 'Validação via token do aplicativo.' : 
+                     'Confirmação positiva de dados via atendimento.'}
+                  </span>
+                </div>
+             </div>
+          </div>
+          
+          {/* Risco (Mock Visual) */}
+          <div className="flex justify-between items-center text-xs text-gray-500">
+             <span>Score de Risco:</span>
+             <span className={`font-bold ${
+               solicitacao.scoreRisco === 'Baixo' ? 'text-green-600' :
+               solicitacao.scoreRisco === 'Médio' ? 'text-yellow-600' : 'text-red-600'
+             }`}>{solicitacao.scoreRisco}</span>
+          </div>
+
+        </div>
+
+        {/* Rodapé Ações */}
+        <div className="p-5 border-t bg-gray-50 flex space-x-3">
+          <button 
+            onClick={() => handleAction('Negar')}
+            className="flex-1 py-3 bg-white border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm"
+          >
+            Negar Solicitação
+          </button>
+          <button 
+            onClick={() => handleAction('Aprovar')}
+            className="flex-1 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-md"
+          >
+            Aprovar Adição
+          </button>
+        </div>
       </div>
     </div>
   );
