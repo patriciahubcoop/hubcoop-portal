@@ -5850,17 +5850,25 @@ function ModalGerenciarServico({ servico, onClose }: { servico: ServicoAdicional
   );
 }
 // =======================================================================
-// 22. PÁGINA DE LANÇAMENTOS  - APENAS CENTRAL
+// 22. PÁGINA DE LANÇAMENTOS (ANTIGA BAIXAS) - APENAS CENTRAL
 // =======================================================================
 
 // --- Tipos ---
-type CategoriaLancamento = 'Parcelamento' | 'Compra Integral' | 'Fatura' | 'Anuidade' | 'PPR';
-type TipoOperacao = 'Credito' | 'Debito';
+type CategoriaLancamento = 
+  | 'Parcelamento' 
+  | 'Compra Integral' 
+  | 'Fatura' 
+  | 'Anuidade' 
+  | 'PPR' 
+  | 'AntecipacaoCompra' // Novo
+  | 'AntecipacaoFatura'; // Novo
+
+type TipoOperacao = 'Credito' | 'Debito' | 'Antecipacao';
 
 type LancamentoHistorico = {
   id: number;
-  categoria: CategoriaLancamento;
-  operacao: TipoOperacao; // Crédito ou Débito
+  categoria: string;
+  operacao: TipoOperacao;
   dataHora: string;
   valor: number;
   status: 'Concluído' | 'Estornado';
@@ -5874,6 +5882,9 @@ type LancamentoHistorico = {
   quemRealizou: string;
   quemSolicitou: string;
   motivo: string;
+  
+  // Detalhes Extras
+  parcelasAdiantadas?: number;
 };
 
 // --- Mocks ---
@@ -5905,6 +5916,21 @@ const mockHistoricoLancamentos: LancamentoHistorico[] = [
     quemRealizou: 'Sistema Automático',
     quemSolicitou: 'Processamento Noturno',
     motivo: 'Acerto de processamento'
+  },
+  {
+    id: 3,
+    categoria: 'Antecipação Parc. Compras',
+    operacao: 'Antecipacao',
+    dataHora: '14/11/2025 14:20',
+    valor: 500.00,
+    status: 'Concluído',
+    contaCartao: '54321-0',
+    idCartao: '900102',
+    cartaoMascarado: '5200 00** **** 2045',
+    quemRealizou: 'João da Silva',
+    quemSolicitou: 'Cooperado via Chat',
+    motivo: 'Adiantamento de 2 parcelas',
+    parcelasAdiantadas: 2
   }
 ];
 
@@ -5922,7 +5948,7 @@ function PaginaLancamentos({ usuario }: { usuario: User }) {
       b.contaCartao.includes(searchTerm) ||
       b.quemSolicitou.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchCat = filtroCat === '' || b.categoria === filtroCat;
+    const matchCat = filtroCat === '' || b.categoria.includes(filtroCat);
 
     return matchSearch && matchCat;
   });
@@ -5935,7 +5961,7 @@ function PaginaLancamentos({ usuario }: { usuario: User }) {
           <h3 className="text-xl font-semibold text-gray-800 flex items-center">
             <ArrowDownCircle className="w-6 h-6 mr-2 text-hub-teal"/> Central de Lançamentos
           </h3>
-          <p className="text-sm text-gray-500">Gestão de créditos e débitos manuais (baixas e cobranças).</p>
+          <p className="text-sm text-gray-500">Gestão de créditos, débitos e antecipações manuais.</p>
         </div>
         <button 
           onClick={() => setShowModal(true)}
@@ -5970,7 +5996,7 @@ function PaginaLancamentos({ usuario }: { usuario: User }) {
               <option value="Compra Integral">Compra Integral</option>
               <option value="Parcelamento">Parcelamento</option>
               <option value="Anuidade">Anuidade</option>
-              <option value="PPR">PPR</option>
+              <option value="Antecipação">Antecipação</option>
             </select>
           </div>
         </div>
@@ -5994,15 +6020,16 @@ function PaginaLancamentos({ usuario }: { usuario: User }) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{lanc.dataHora}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 rounded-full text-xs font-bold border ${
-                      lanc.operacao === 'Credito' 
-                      ? 'bg-green-50 text-green-700 border-green-200' 
-                      : 'bg-red-50 text-red-700 border-red-200'
+                      lanc.operacao === 'Credito' ? 'bg-green-50 text-green-700 border-green-200' : 
+                      lanc.operacao === 'Debito' ? 'bg-red-50 text-red-700 border-red-200' :
+                      'bg-blue-50 text-blue-700 border-blue-200'
                     }`}>
-                      {lanc.operacao === 'Credito' ? 'Crédito' : 'Débito'}
+                      {lanc.operacao}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
                     {lanc.categoria}
+                    {lanc.parcelasAdiantadas && <span className="text-xs text-gray-500 block">({lanc.parcelasAdiantadas} parcelas)</span>}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="font-mono text-gray-800">{lanc.cartaoMascarado}</div>
@@ -6038,96 +6065,133 @@ function PaginaLancamentos({ usuario }: { usuario: User }) {
   );
 }
 
-// --- Componente Modal Novo Lançamento (Com Etapas) ---
+// --- Componente Modal Novo Lançamento (ATUALIZADO) ---
+type OpcaoLancamento = 'Credito' | 'Debito' | 'AntecipacaoCompra' | 'AntecipacaoFatura';
+
 function ModalNovoLancamento({ usuario, onClose }: { usuario: User; onClose: () => void }) {
   const [etapa, setEtapa] = useState<'selecao' | 'formulario'>('selecao');
-  const [tipoOperacao, setTipoOperacao] = useState<TipoOperacao | null>(null);
+  const [tipoSelecionado, setTipoSelecionado] = useState<OpcaoLancamento | null>(null);
   
-  const [categoria, setCategoria] = useState<CategoriaLancamento>('Fatura');
+  // Campos do Formulário
+  const [categoria, setCategoria] = useState<string>('Fatura');
   const [valor, setValor] = useState('');
+  const [numParcelas, setNumParcelas] = useState('1');
+  
+  // Mock de parcelas restantes (simulando retorno do sistema)
+  const parcelasRestantesMock = 10;
 
-  const handleSelectTipo = (tipo: TipoOperacao) => {
-    setTipoOperacao(tipo);
+  const handleSelect = (tipo: OpcaoLancamento) => {
+    setTipoSelecionado(tipo);
+    
+    // Pré-seleciona a categoria correta
+    if (tipo === 'AntecipacaoCompra') setCategoria('Antecipação Parc. Compras');
+    else if (tipo === 'AntecipacaoFatura') setCategoria('Antecipação Parc. Fatura');
+    else setCategoria('Fatura'); // Default para Crédito/Débito
+
     setEtapa('formulario');
+  };
+
+  const getTituloModal = () => {
+    switch(tipoSelecionado) {
+      case 'Credito': return 'Novo Lançamento a Crédito';
+      case 'Debito': return 'Novo Lançamento a Débito';
+      case 'AntecipacaoCompra': return 'Antecipação de Parcela de Compras';
+      case 'AntecipacaoFatura': return 'Antecipação de Parcelamento de Fatura';
+      default: return 'Novo Lançamento';
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Lançamento a ${tipoOperacao} registrado com sucesso!`);
+    alert(`Operação realizada com sucesso!\nTipo: ${tipoSelecionado}\nValor: R$ ${valor}`);
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl flex flex-col max-h-[90vh]">
         
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
           <div>
             <h3 className="text-xl font-semibold text-gray-800">
-              {etapa === 'selecao' ? 'Novo Lançamento' : `Registrar Lançamento a ${tipoOperacao === 'Credito' ? 'Crédito' : 'Débito'}`}
+              {etapa === 'selecao' ? 'Selecionar Tipo de Lançamento' : getTituloModal()}
             </h3>
-            {etapa === 'formulario' && (
-              <p className="text-xs text-gray-500 mt-1">
-                {tipoOperacao === 'Credito' ? 'O portador já realizou o pagamento.' : 'O portador ainda irá pagar.'}
-              </p>
-            )}
+            {etapa === 'formulario' && tipoSelecionado === 'Credito' && <p className="text-xs text-green-600 mt-1">O portador JÁ realizou o pagamento.</p>}
+            {etapa === 'formulario' && tipoSelecionado === 'Debito' && <p className="text-xs text-red-600 mt-1">O portador AINDA IRÁ pagar (Cobrança).</p>}
           </div>
           <button onClick={onClose}><X className="w-6 h-6 text-gray-400 hover:text-gray-600" /></button>
         </div>
         
-        {/* --- ETAPA 1: SELEÇÃO --- */}
+        {/* --- ETAPA 1: SELEÇÃO (4 BOTÕES) --- */}
         {etapa === 'selecao' && (
           <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <button 
-              onClick={() => handleSelectTipo('Credito')}
-              className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group"
-            >
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-green-200">
-                <ArrowDownCircle className="w-8 h-8 text-green-600" />
+            
+            {/* Opção 1: Crédito */}
+            <button onClick={() => handleSelect('Credito')} className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all group">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200">
+                <ArrowDownCircle className="w-6 h-6 text-green-600" />
               </div>
-              <h4 className="text-lg font-bold text-gray-800 mb-2">Lançamento a Crédito</h4>
-              <p className="text-sm text-gray-500 text-center">
-                Selecione se o portador <strong>já realizou o pagamento</strong>.
-              </p>
+              <h4 className="font-bold text-gray-800">Lançamento a Crédito</h4>
+              <p className="text-xs text-gray-500 text-center mt-1">Pagamento já realizado / Estorno</p>
             </button>
 
-            <button 
-              onClick={() => handleSelectTipo('Debito')}
-              className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group"
-            >
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-red-200">
-                <ArrowDownCircle className="w-8 h-8 text-red-600 transform rotate-180" />
+            {/* Opção 2: Débito */}
+            <button onClick={() => handleSelect('Debito')} className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-red-500 hover:bg-red-50 transition-all group">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-200">
+                <ArrowDownCircle className="w-6 h-6 text-red-600 transform rotate-180" />
               </div>
-              <h4 className="text-lg font-bold text-gray-800 mb-2">Lançamento a Débito</h4>
-              <p className="text-sm text-gray-500 text-center">
-                Selecione se o portador <strong>ainda irá pagar</strong> (cobrança).
-              </p>
+              <h4 className="font-bold text-gray-800">Lançamento a Débito</h4>
+              <p className="text-xs text-gray-500 text-center mt-1">Cobrança / Dívida nova</p>
+            </button>
+
+            {/* Opção 3: Antecipação Compras */}
+            <button onClick={() => handleSelect('AntecipacaoCompra')} className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all group">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-blue-200">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
+              <h4 className="font-bold text-gray-800">Antecipação de Compras</h4>
+              <p className="text-xs text-gray-500 text-center mt-1">Adiantar parcelas de compras parceladas</p>
+            </button>
+
+            {/* Opção 4: Antecipação Fatura */}
+            <button onClick={() => handleSelect('AntecipacaoFatura')} className="flex flex-col items-center justify-center p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-purple-200">
+                <FileText className="w-6 h-6 text-purple-600" />
+              </div>
+              <h4 className="font-bold text-gray-800">Antecipação de Fatura</h4>
+              <p className="text-xs text-gray-500 text-center mt-1">Adiantar refinanciamento de fatura</p>
             </button>
           </div>
         )}
 
-        {/* --- ETAPA 2: FORMULÁRIO (IGUAL AO ANTERIOR) --- */}
+        {/* --- ETAPA 2: FORMULÁRIO --- */}
         {etapa === 'formulario' && (
           <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-            {/* Linha 1 */}
+            
+            {/* Linha 1: Categoria e Valor */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Item (Categoria)</label>
-                <select 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
-                  value={categoria}
-                  onChange={(e) => setCategoria(e.target.value as CategoriaLancamento)}
-                >
-                  <option value="Fatura">Pagamento de Fatura</option>
-                  <option value="Compra Integral">Compra Integral</option>
-                  <option value="Parcelamento">Parcelamento</option>
-                  <option value="Anuidade">Anuidade</option>
-                  <option value="PPR">PPR</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                {/* Se for antecipação, trava o select */}
+                {tipoSelecionado?.includes('Antecipacao') ? (
+                   <input type="text" value={categoria} disabled className="w-full px-3 py-2 border border-gray-200 bg-gray-100 rounded-lg text-gray-600"/>
+                ) : (
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                  >
+                    <option value="Fatura">Fatura</option>
+                    <option value="Compra Integral">Compra Integral</option>
+                    <option value="Parcelamento">Parcelamento</option>
+                    <option value="Anuidade">Anuidade</option>
+                    <option value="PPR">PPR</option>
+                  </select>
+                )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Valor Total (R$)</label>
                 <input 
                   type="number" 
                   required
@@ -6139,6 +6203,32 @@ function ModalNovoLancamento({ usuario, onClose }: { usuario: User; onClose: () 
                 />
               </div>
             </div>
+
+            {/* Linha Extra: Apenas para Antecipações */}
+            {tipoSelecionado?.includes('Antecipacao') && (
+              <div className="grid grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                 <div>
+                    <label className="block text-sm font-medium text-blue-800 mb-1">Nº Parcelas a Adiantar</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max={parcelasRestantesMock}
+                      className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-hub-teal"
+                      value={numParcelas}
+                      onChange={(e) => setNumParcelas(e.target.value)}
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-medium text-blue-800 mb-1">Parcelas Restantes (Sistema)</label>
+                    <div className="w-full px-3 py-2 bg-blue-100 border border-transparent rounded-lg text-blue-900 font-bold">
+                       {parcelasRestantesMock} parcelas
+                    </div>
+                 </div>
+                 <p className="col-span-2 text-xs text-blue-600">
+                   * O valor total será calculado com base no desconto de juros proporcional.
+                 </p>
+              </div>
+            )}
 
             {/* Linha 2: Identificação do Cartão */}
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
