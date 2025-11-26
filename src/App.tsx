@@ -2659,11 +2659,19 @@ function ViewFormContestacao() {
     </div>
   );
 }
-
-
 // =======================================================================
-// 12. A PÁGINA DE FATURAS (ATUALIZADA COM NOVAS COLUNAS E ABA VENCIMENTO)
+// 12. A PÁGINA DE FATURAS (ATUALIZADA COM DETALHAMENTO DE ITENS)
 // =======================================================================
+
+// --- Tipos ---
+type ItemFatura = {
+  data: string;
+  descricao: string;
+  categoria: 'Compra a Vista' | 'Parcelado' | 'Encargos' | 'Serviços' | 'Pagamento';
+  parcelaAtual?: number;
+  totalParcelas?: number;
+  valor: number;
+};
 
 type Fatura = {
   id: number;
@@ -2672,18 +2680,26 @@ type Fatura = {
   vencimento: string;
   status: 'aberta' | 'paga' | 'vencida';
   
-  // Novos Campos Solicitados
+  // Totais
   valorTotal: number;
   valorPago: number;
   valorEmAberto: number;
+  
+  // Dados da Conta
   contaCorrente: string;
   cooperativa: string;
   pa: string;
-  valorLimite: number;     // Limite total atribuído
-  valorDisponivel: number; // Quanto ainda pode gastar
+  
+  // Limites
+  valorLimite: number;
+  valorDisponivel: number;
   diasAtraso?: number;
+
+  // Detalhamento (Extrato)
+  itens: ItemFatura[]; 
 };
 
+// --- Mocks ---
 const mockKpiFaturas = {
   total: 6,
   abertas: 6,
@@ -2696,28 +2712,43 @@ const mockListaDeFaturas: Fatura[] = [
     id: 1, cooperado: 'Fernanda Lima Santos', referencia: '11/2025', vencimento: '24/11/2025', status: 'aberta',
     valorTotal: 1150.00, valorPago: 0.00, valorEmAberto: 1150.00,
     contaCorrente: '12345-6', cooperativa: 'Crediserv', pa: 'PA 05',
-    valorLimite: 5000.00, valorDisponivel: 3850.00
+    valorLimite: 5000.00, valorDisponivel: 3850.00,
+    itens: [
+      { data: '05/11', descricao: 'Supermercado Extra', categoria: 'Compra a Vista', valor: 450.00 },
+      { data: '08/11', descricao: 'Magazine Luiza (TV)', categoria: 'Parcelado', parcelaAtual: 2, totalParcelas: 10, valor: 300.00 },
+      { data: '10/11', descricao: 'Netflix Assinatura', categoria: 'Serviços', valor: 55.90 },
+      { data: '15/11', descricao: 'Posto Ipiranga', categoria: 'Compra a Vista', valor: 250.00 },
+      { data: '24/11', descricao: 'Anuidade Diferenciada', categoria: 'Serviços', valor: 94.10 },
+    ]
   },
   { 
     id: 2, cooperado: 'Carlos Eduardo Souza', referencia: '11/2025', vencimento: '24/11/2025', status: 'aberta',
     valorTotal: 2500.00, valorPago: 500.00, valorEmAberto: 2000.00,
     contaCorrente: '54321-0', cooperativa: 'Coopesa', pa: 'PA 03',
-    valorLimite: 8000.00, valorDisponivel: 1200.00
+    valorLimite: 8000.00, valorDisponivel: 1200.00,
+    itens: [
+      { data: '01/11', descricao: 'Pagamento Antecipado', categoria: 'Pagamento', valor: -500.00 },
+      { data: '02/11', descricao: 'Apple Store', categoria: 'Compra a Vista', valor: 1200.00 },
+      { data: '05/11', descricao: 'Restaurante Outback', categoria: 'Compra a Vista', valor: 350.00 },
+      { data: '24/11', descricao: 'Juros de Rotativo (Mês Anterior)', categoria: 'Encargos', valor: 45.50 },
+      { data: '24/11', descricao: 'Multa por Atraso', categoria: 'Encargos', valor: 20.00 },
+      { data: '24/11', descricao: 'IOF Diario', categoria: 'Encargos', valor: 5.50 },
+    ]
   },
   { 
     id: 3, cooperado: 'Ana Paula Ferreira', referencia: '11/2025', vencimento: '24/11/2025', status: 'vencida',
     valorTotal: 3000.00, valorPago: 0.00, valorEmAberto: 3000.00, diasAtraso: 5,
     contaCorrente: '99887-1', cooperativa: 'Crediserv', pa: 'PA 05',
-    valorLimite: 10000.00, valorDisponivel: 500.00
-  },
-  { 
-    id: 4, cooperado: 'João Pedro Costa', referencia: '11/2025', vencimento: '10/11/2025', status: 'paga',
-    valorTotal: 150.00, valorPago: 150.00, valorEmAberto: 0.00,
-    contaCorrente: '77441-2', cooperativa: 'Coopesa', pa: 'PA 04',
-    valorLimite: 2000.00, valorDisponivel: 1850.00
+    valorLimite: 10000.00, valorDisponivel: 500.00,
+    itens: [
+      { data: '20/10', descricao: 'Saldo Fatura Anterior', categoria: 'Encargos', valor: 2800.00 },
+      { data: '24/11', descricao: 'Encargos de Financiamento', categoria: 'Encargos', valor: 150.00 },
+      { data: '24/11', descricao: 'Multa Contratual', categoria: 'Encargos', valor: 50.00 },
+    ]
   },
 ];
 
+// --- Componente Principal de Faturas ---
 function PaginaFaturas({ usuario }: { usuario: User }) {
   const [activeTab, setActiveTab] = useState<'lista' | 'vencimento'>('lista');
 
@@ -2750,6 +2781,8 @@ function PaginaFaturas({ usuario }: { usuario: User }) {
 
 // --- Sub-componente: Listagem (Tabela Completa) ---
 function ViewListagemFaturas() {
+  const [faturaSelecionada, setFaturaSelecionada] = useState<Fatura | null>(null);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* KPIs */}
@@ -2786,6 +2819,7 @@ function ViewListagemFaturas() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Limites (Disp / Total)</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valores (Aberto / Total)</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Detalhes</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -2821,10 +2855,118 @@ function ViewListagemFaturas() {
                       {fatura.diasAtraso ? ` (${fatura.diasAtraso}d)` : ''}
                     </span>
                   </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-center">
+                    <button 
+                      onClick={() => setFaturaSelecionada(fatura)}
+                      className="text-hub-teal hover:text-hub-teal-dark p-2 bg-teal-50 rounded-full hover:bg-teal-100 transition-colors"
+                      title="Ver Detalhes da Fatura"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Modal de Detalhes */}
+      {faturaSelecionada && (
+        <ModalDetalhesFatura 
+          fatura={faturaSelecionada} 
+          onClose={() => setFaturaSelecionada(null)} 
+        />
+      )}
+    </div>
+  );
+}
+
+// --- Novo Componente: Modal Detalhes da Fatura ---
+function ModalDetalhesFatura({ fatura, onClose }: { fatura: Fatura; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto flex flex-col">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10">
+          <div>
+            <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+              <Receipt className="w-6 h-6 mr-2 text-hub-teal"/> Detalhes da Fatura
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Referência: <strong>{fatura.referencia}</strong> | Vencimento: {fatura.vencimento}
+            </p>
+          </div>
+          <button onClick={onClose}><X className="w-6 h-6 text-gray-400 hover:text-gray-600" /></button>
+        </div>
+
+        <div className="p-6">
+          {/* Resumo do Portador */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 flex flex-col md:flex-row justify-between">
+             <div>
+               <span className="text-xs font-bold text-gray-500 uppercase">Cooperado</span>
+               <p className="text-gray-900 font-medium">{fatura.cooperado}</p>
+               <p className="text-xs text-gray-500">Conta: {fatura.contaCorrente} | {fatura.cooperativa}</p>
+             </div>
+             <div className="mt-4 md:mt-0 text-right">
+               <span className="text-xs font-bold text-gray-500 uppercase">Valor Total da Fatura</span>
+               <p className="text-2xl font-bold text-hub-teal">{fatura.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+               {fatura.valorPago > 0 && (
+                 <p className="text-xs text-green-600">Pago: {fatura.valorPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+               )}
+             </div>
+          </div>
+
+          {/* Tabela de Lançamentos (Extrato) */}
+          <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase border-b pb-2">Extrato de Lançamentos</h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600">
+                <tr>
+                  <th className="px-4 py-2">Data</th>
+                  <th className="px-4 py-2">Descrição</th>
+                  <th className="px-4 py-2">Categoria</th>
+                  <th className="px-4 py-2 text-center">Parcela</th>
+                  <th className="px-4 py-2 text-right">Valor (R$)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {fatura.itens && fatura.itens.length > 0 ? (
+                  fatura.itens.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-mono text-gray-500">{item.data}</td>
+                      <td className="px-4 py-3 font-medium text-gray-800">{item.descricao}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          item.categoria === 'Encargos' ? 'bg-red-100 text-red-700' :
+                          item.categoria === 'Pagamento' ? 'bg-green-100 text-green-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {item.categoria}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-gray-500">
+                        {item.parcelaAtual ? `${item.parcelaAtual}/${item.totalParcelas}` : '-'}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-bold ${item.valor < 0 ? 'text-green-600' : 'text-gray-800'}`}>
+                        {item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhum lançamento registrado nesta fatura.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t bg-gray-50 flex justify-end">
+          <button onClick={onClose} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors">
+            Fechar
+          </button>
         </div>
       </div>
     </div>
@@ -2906,7 +3048,6 @@ function ViewAlterarVencimento() {
     </div>
   );
 }
-
 // =======================================================================
 // 13. A PÁGINA DE RELATÓRIOS (ATUALIZADA COM NOVOS FILTROS E CARTEIRAS VIRTUAIS)
 // =======================================================================
