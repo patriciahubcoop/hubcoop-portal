@@ -87,6 +87,21 @@ import {
   Smartphone,
 } from "lucide-react";
 
+import {
+  PieChart as RechartsPie,
+  Pie,
+  Cell,
+  BarChart as RechartsBar,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart as RechartsArea, 
+  Area
+} from 'recharts';
+
 // =======================================================================
 // DADOS GLOBAIS DO SISTEMA (USUÁRIOS MOCK, CENTRAIS, COOPERATIVAS, PONTOS)
 // =======================================================================
@@ -899,757 +914,581 @@ function PaginaPlaceholder({ pageName }: { pageName: string }) {
     </div>
   );
 }
-
 // =======================================================================
-// 7. A PÁGINA DE DASHBOARD (ATUALIZADA COM FILTROS HIERÁRQUICOS)
+// 7. A PÁGINA DE DASHBOARD (VISÃO ESTRATÉGICA + VISÃO OPERACIONAL - ABAS)
 // =======================================================================
 
-// --- Definição de Tipos para o Dashboard ---
-type KpiCardProps = {
-  title: string;
-  value: string;
-  change: string;
-  changeType: "positive" | "negative" | "info";
-  icon: React.ElementType;
-};
-type AlertasBloqueiosProps = {
-  data: { bloqueados: number; atrasadas: number };
-};
-type LimiteDeCreditoProps = {
-  data: { utilizado: number; disponivel: number; total: number };
-  percentual: number;
-};
-type ResumoDeFaturasProps = {
-  data: { abertas: number; pagas: number; vencidas: number };
-};
-type Solicitacao = {
-  id: number;
-  nome: string;
-  card: string;
-  status: string;
-};
-type Transacao = {
-  id: number;
-  nome: string;
-  card: string;
-  valor: string;
-  status: string;
-};
-type Atividade = { name: string; value: number; color: string };
-
-// --- Dados Mockados BASE (Valores Totais/Central) ---
-// Estes valores serão ajustados dinamicamente pelos filtros
-const baseKpiData: KpiCardProps[] = [
-  {
-    title: "Transações Hoje",
-    value: "122.847",
-    change: "-3%",
-    changeType: "negative",
-    icon: DollarSign,
-  },
-  {
-    title: "Limite de Crédito",
-    value: "35%", // Será recalculado
-    change: "DE LIMIT. TOTAL",
-    changeType: "info",
-    icon: CreditCard,
-  },
-  {
-    title: "Ticket médio",
-    value: "R$ 1.258,00",
-    change: "",
-    changeType: "info",
-    icon: DollarSign,
-  },
-  {
-    title: "Total de Cartões",
-    value: "12.458",
-    change: "",
-    changeType: "info",
-    icon: CreditCard,
-  },
-];
-
-const baseLimiteCredito = {
-  utilizado: 105200.0,
-  disponivel: 126800.0,
-  total: 232000.0,
-};
-const baseResumoFaturas = { abertas: 6, pagas: 8, vencidas: 0 };
-const baseAlertas = { bloqueados: 2, atrasadas: 0 };
-const baseAtividadeCartao: Atividade[] = [
-  { name: "Visa Infinite", value: 3421, color: "bg-chart-1" },
-  { name: "Visa Gold", value: 2847, color: "bg-chart-2" },
-  { name: "Visa Classic", value: 4190, color: "bg-chart-3" },
-  { name: "Visa Electron", value: 2000, color: "bg-chart-4" },
-];
-const baseSolicitacoesRecentes: Solicitacao[] = [
-  { id: 1, nome: "Daniel C. Oliveira", card: "Visa Classic - R$ 5.000,00", status: "Em análise" },
-  { id: 2, nome: "Ana Beatriz Silva", card: "Visa Infinite - R$ 25.000,00", status: "Em análise" },
-  { id: 3, nome: "Roberto L. Souza", card: "Visa Gold - R$ 10.000,00", status: "Em análise" },
-];
-const baseTransacoesRecentes: Transacao[] = [
-  { id: 1, nome: "Supermercado Extra", card: "Supermercado", valor: "R$ 205.352", status: "Aprovada" },
-  { id: 2, nome: "Posto Shell", card: "Gasolina", valor: "R$ 150.00", status: "Aprovada" },
-  { id: 3, nome: "Amazon.com.br", card: "Online", valor: "R$ 89.90", status: "Aprovada" },
-];
-
-// --- Componente PaginaDashboard ---
 function PaginaDashboard({ usuario }: { usuario: User }) {
-  // Estado para Filtros
+  // filtros (reaproveita lógica já presente no App)
   const [coopSelecionada, setCoopSelecionada] = useState<string>("");
-  const [paSelecionado, setPaSelecionada] = useState<string>("");
+  const [paSelecionado, setPaSelecionado] = useState<string>("");
 
-  // Se for Master, nem renderiza o dashboard
-  if (usuario.perfil === "Master") {
-    return (
-      <div className="p-8 bg-white rounded-xl shadow-lg text-center">
-        <h3 className="text-2xl font-semibold">
-          Bem-vindo, Administrador Master
-        </h3>
-        <p className="mt-2 text-gray-600">
-          Utilize o menu "Configurações" para gerenciar as centrais do sistema.
-        </p>
-      </div>
-    );
-  }
+  let fator = 1.0;
+  if (coopSelecionada) fator = 0.4;
+  if (paSelecionado) fator = 0.1;
+  if (usuario.perfil === "Cooperativa") fator = 0.4;
+  if (usuario.perfil === "PA") fator = 0.1;
+  if (usuario.perfil === "Cooperativa" && paSelecionado) fator = 0.1;
 
-  // --- LÓGICA DE SIMULAÇÃO DE DADOS FILTRADOS ---
-  // Aplica um "fator" de redução para simular que os números mudam ao filtrar
-  let fator = 1.0; // Visão Central (100%)
-
-  if (coopSelecionada) fator = 0.4; // Se filtrar Coop, cai para 40%
-  if (paSelecionado) fator = 0.1;   // Se filtrar PA, cai para 10%
-
-  // Ajuste inicial baseado no perfil logado
-  if (usuario.perfil === 'Cooperativa') fator = 0.4;
-  if (usuario.perfil === 'PA') fator = 0.1;
-  // Se coop filtrar PA
-  if (usuario.perfil === 'Cooperativa' && paSelecionado) fator = 0.1;
-
-  // Recalcula os dados baseado no fator
-  const dadosFiltrados = {
-    kpis: baseKpiData.map(kpi => {
-        // Logica simples para manter R$ e formatação nos KPIs de texto
-        if(kpi.title === "Transações Hoje" || kpi.title === "Total de Cartões") {
-            return { ...kpi, value: Math.floor(parseInt(kpi.value.replace('.','')) * fator).toLocaleString('pt-BR') };
-        }
-        if(kpi.title === "Ticket médio") {
-             // Mantém ticket médio similar
-             return kpi; 
-        }
-        return kpi;
-    }),
-    limite: {
-        utilizado: baseLimiteCredito.utilizado * fator,
-        disponivel: baseLimiteCredito.disponivel * fator,
-        total: baseLimiteCredito.total * fator
-    },
-    faturas: {
-        abertas: Math.ceil(baseResumoFaturas.abertas * fator),
-        pagas: Math.ceil(baseResumoFaturas.pagas * fator),
-        vencidas: Math.ceil(baseResumoFaturas.vencidas * fator)
-    },
-    alertas: {
-        bloqueados: Math.ceil(baseAlertas.bloqueados * fator),
-        atrasadas: Math.ceil(baseAlertas.atrasadas * fator)
-    },
-    atividade: baseAtividadeCartao.map(a => ({ ...a, value: Math.floor(a.value * fator) }))
-  };
-
-  const percentualUtilizado = (dadosFiltrados.limite.utilizado / dadosFiltrados.limite.total) * 100;
-
-  // Atualiza o KPI de porcentagem de limite com o cálculo real
-  dadosFiltrados.kpis[1].value = `${percentualUtilizado.toFixed(0)}%`;
-
-  // --- Listas para os Selects ---
-  const cooperativasDisponiveis = mockCooperativas.filter(
-    (c) => c.centralId === usuario.centralId && c.tipo === "Singular"
+  // layout de abas
+  const [tab, setTab] = useState<"estrategica" | "operacional">(
+    "estrategica",
   );
 
-  // PAs dependem da cooperativa selecionada (ou da coop do usuário logado)
-  const idCoopParaFiltroPA = usuario.perfil === 'Cooperativa' ? usuario.cooperativaId : coopSelecionada;
-  const pasDisponiveis = mockPontosAtendimento.filter(
-    (pa) => pa.cooperativaId === idCoopParaFiltroPA
-  );
+  // Dados (mix: valores reais do protótipo + valores fictícios coerentes)
+  const kpiTransacoesHoje = Math.floor(122847 * fator);
+  const kpiTotalCartoes = Math.floor(12458 * fator);
+  const limiteUtilizado = Math.floor(105200 * fator);
+  const limiteDisponivel = Math.floor(126800 * fator);
+  const ticketMedio = "R$ 1.258,00";
+
+  // Dados para gráficos
+  const volumeModalidadeData = [
+    { name: "Débito", value: 86800 * fator },
+    { name: "Crédito", value: 26796 * fator },
+    { name: "Parcelado", value: 95534 * fator },
+  ];
+
+  const transacoesSeries = [
+    { dia: "Seg", valor: 120 * fator },
+    { dia: "Ter", valor: 180 * fator },
+    { dia: "Qua", valor: 150 * fator },
+    { dia: "Qui", valor: 220 * fator },
+    { dia: "Sex", valor: 260 * fator },
+    { dia: "Sáb", valor: 140 * fator },
+    { dia: "Dom", valor: 90 * fator },
+  ];
+
+  const faturasData = [
+    { name: "Pagas", value: 25649 * fator },
+    { name: "Abertas", value: 31315 * fator },
+    { name: "Atrasadas", value: 13861 * fator },
+  ];
+
+  const aderenciaPct = 76; // valor do protótipo
+  const ativacaoPct = 92; // valor do protótipo
+
+  const inadimplenciaData = [
+    { cat: "INFINITE", pf: 85, pj: 50 },
+    { cat: "PLATINUM", pf: 65, pj: 65 },
+    { cat: "GOLD", pf: 35, pj: 40 },
+    { cat: "CLASSIC", pf: 65, pj: 80 },
+    { cat: "EMPRESARIAL", pf: 70, pj: 70 },
+  ];
+
+  const walletsData = [
+    { name: "Apple Pay", uso: 23 },
+    { name: "Google Pay", uso: 40 },
+    { name: "Samsung Pay", uso: 8 },
+  ];
+
+  const oportunidadesSeries = [
+    { x: 1, y: 10 * fator },
+    { x: 2, y: 40 * fator },
+    { x: 3, y: 25 * fator },
+    { x: 4, y: 60 * fator },
+  ];
+
+  const propensaoSeries = [
+    { x: 1, y: 20 * fator },
+    { x: 2, y: 10 * fator },
+    { x: 3, y: 15 * fator },
+    { x: 4, y: 8 * fator },
+  ];
+
+  const quedaSeries = [
+    { x: 1, y: 30 * fator },
+    { x: 2, y: 15 * fator },
+    { x: 3, y: 10 * fator },
+    { x: 4, y: 5 * fator },
+  ];
+
+  // pequeno helper para formatar BRL
+  const fmtBRL = (v: number) =>
+    "R$ " + Math.round(v).toLocaleString("pt-BR");
 
   return (
-    <div className="space-y-6">
-      
-      {/* --- BARRA DE FILTROS --- */}
-      {(usuario.perfil === "Central" || usuario.perfil === "Cooperativa") && (
-        <div className="bg-white p-4 rounded-xl shadow-md border border-border flex flex-col md:flex-row md:items-center justify-between">
-          <div className="mb-2 md:mb-0">
-            <h3 className="text-sm font-semibold text-gray-700 flex items-center">
-              <Filter className="w-4 h-4 mr-2 text-primary" /> Filtros de Visualização
-            </h3>
-          </div>
-          <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-4">
-            
-            {/* Select Cooperativa (Apenas Central) */}
-            {usuario.perfil === "Central" && (
-              <div className="flex flex-col">
-                <label className="text-[10px] uppercase font-bold text-gray-500 mb-1">Cooperativa</label>
-                <select
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary bg-gray-50 min-w-[200px]"
-                  value={coopSelecionada}
-                  onChange={(e) => {
-                    setCoopSelecionada(e.target.value);
-                    setPaSelecionada(""); // Reseta PA ao mudar coop
-                  }}
-                >
-                  <option value="">Visão Central (Todas)</option>
-                  {cooperativasDisponiveis.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Select PA (Central e Cooperativa) */}
-            <div className="flex flex-col">
-                <label className="text-[10px] uppercase font-bold text-gray-500 mb-1">Ponto de Atendimento</label>
-                <select
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-primary focus:border-primary bg-gray-50 min-w-[200px]"
-                  value={paSelecionado}
-                  onChange={(e) => setPaSelecionada(e.target.value)}
-                  disabled={usuario.perfil === 'Central' && !coopSelecionada} // Central só habilita PA se escolher Coop
-                >
-                  <option value="">Todos os PAs</option>
-                  {pasDisponiveis.map((pa) => (
-                    <option key={pa.id} value={pa.id}>
-                      {pa.nome}
-                    </option>
-                  ))}
-                </select>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Top KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {dadosFiltrados.kpis.map((kpi) => (
-          <KpiCard key={kpi.title} {...kpi} />
-        ))}
-      </div>
-
-      {/* Second Row - Volume por modalidade, Transações Recentes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <PieChart className="w-5 h-5 text-card-foreground" />
-            <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-              Volume por modalidade
-            </h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-chart-1"></div>
-              <span className="text-foreground flex-1">Débito</span>
-              <span className="text-foreground">{(500 * fator).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-chart-2"></div>
-              <span className="text-foreground flex-1">Crédito</span>
-              <span className="text-foreground">{(296 * fator).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-chart-3"></div>
-              <span className="text-foreground flex-1">Parcelado</span>
-              <span className="text-foreground">{(534.19 * fator).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</span>
-            </div>
-          </div>
+    <div className="space-y-6 pb-10">
+      {/* ABAS */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTab("estrategica")}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+              tab === "estrategica"
+                ? "bg-gray-900 text-white"
+                : "bg-white text-gray-700 border border-gray-200"
+            }`}
+          >
+            Visão Estratégica
+          </button>
+          <button
+            onClick={() => setTab("operacional")}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm ${
+              tab === "operacional"
+                ? "bg-gray-900 text-white"
+                : "bg-white text-gray-700 border border-gray-200"
+            }`}
+          >
+            Visão Operacional
+          </button>
         </div>
 
-        <TransacoesRecentes data={baseTransacoesRecentes} />
-      </div>
+        {/* Filtros (se aplicáveis) */}
+        <div className="flex items-center gap-3">
+          {usuario.perfil === "Central" && (
+            <select
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
+              value={coopSelecionada}
+              onChange={(e) => {
+                setCoopSelecionada(e.target.value);
+                setPaSelecionado("");
+              }}
+            >
+              <option value="">Todas as Cooperativas</option>
+              {mockCooperativas
+                .filter((c) => c.centralId === usuario.centralId && c.tipo === "Singular")
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+            </select>
+          )}
 
-      {/* Third Row - More detailed cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AlertasBloqueios data={dadosFiltrados.alertas} />
-        <AtividadePorCartao data={dadosFiltrados.atividade} />
-        <ResumoDeFaturas data={dadosFiltrados.faturas} />
-      </div>
-
-      {/* Fourth Row - Metrics (Simulated with Factor) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Aderência
-          </h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-                {76}%
-              </div>
-              <div className="text-muted-foreground text-sm">
-                de cooperados com cartão ativo
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-                {92}%
-              </div>
-              <div className="text-muted-foreground text-sm">
-                de adesão para novos cartões
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Carteiras digitais
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-foreground">Apple Pay</span>
-              <div className="flex gap-4">
-                <span className="text-muted-foreground text-sm">23%</span>
-                <span className="text-muted-foreground text-sm">{Math.floor(1350 * fator)} / {Math.floor(1350 * fator)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-foreground">Google Pay</span>
-              <div className="flex gap-4">
-                <span className="text-muted-foreground text-sm">40%</span>
-                <span className="text-muted-foreground text-sm">{Math.floor(3225 * fator)} / {Math.floor(2110 * fator)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-foreground">Samsung Pay</span>
-              <div className="flex gap-4">
-                <span className="text-muted-foreground text-sm">08%</span>
-                <span className="text-muted-foreground text-sm">{Math.floor(421 * fator)} / {Math.floor(98 * fator)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Cartões Virtuais
-          </h3>
-          <div className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-            {Math.floor(28973 * fator).toLocaleString('pt-BR')}
-          </div>
+          <select
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50"
+            value={paSelecionado}
+            onChange={(e) => setPaSelecionado(e.target.value)}
+            disabled={usuario.perfil === "Central" && !coopSelecionada}
+          >
+            <option value="">Todos os PAs</option>
+            {mockPontosAtendimento
+              .filter((pa) =>
+                (usuario.perfil === "Cooperativa" ? pa.cooperativaId === usuario.cooperativaId : true) &&
+                (coopSelecionada ? pa.cooperativaId === coopSelecionada : true),
+              )
+              .map((pa) => (
+                <option key={pa.id} value={pa.id}>
+                  {pa.nome}
+                </option>
+              ))}
+          </select>
         </div>
       </div>
 
-      {/* Fifth Row - Bottom cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Cartões emitidos
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-              {Math.floor(6320 * fator).toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>3% MENOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Cancelamentos
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-              {Math.floor(684 * fator)}
-            </span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>1% MENOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Emissões por produto
-          </h3>
-          <div className="space-y-2">
-            {dadosFiltrados.atividade.map((item) => (
-               <div key={item.name} className="flex justify-between">
-                 <span className="text-foreground">{item.name}</span>
-                 <span className="text-foreground">{item.value.toLocaleString('pt-BR')}</span>
-               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* More rows following the Figma pattern */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SolicitacoesRecentes data={baseSolicitacoesRecentes} />
-
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Inadimplência
-          </h3>
-          <div className="h-48 flex items-center justify-center text-muted-foreground">
-            [Gráfico de barras]
-          </div>
-        </div>
-
+      {/* Conteúdo da aba */}
+      {tab === "estrategica" ? (
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-md border border-border p-6">
-            <h3 className="text-card-foreground mb-2" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-              Tendência de atraso
-            </h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-                16%
-              </span>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <TrendingDown className="w-4 h-4" />
-                <span>1% MENOR QUE O ÚLTIMO MÊS</span>
+          {/* Linha 1: KPIs principais (visual executivo: número grande + mini gráfico discreto) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Transações Hoje */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+              <div className="text-sm text-gray-500 font-bold uppercase">Transações Hoje</div>
+              <div className="flex items-center justify-between mt-4">
+                <div>
+                  <div className="text-3xl font-extrabold text-gray-900">{kpiTransacoesHoje.toLocaleString()}</div>
+                  <div className="text-xs text-gray-400 uppercase">Maior que o último mês</div>
+                </div>
+                <div style={{ width: 140, height: 70 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsArea data={transacoesSeries}>
+                      <Area dataKey="valor" stroke="#111827" fill="#6B7280" fillOpacity={0.12} />
+                    </RechartsArea>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Limite de Crédito */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+              <div className="text-sm text-gray-500 font-bold uppercase">Limite de Crédito</div>
+              <div className="mt-4">
+                <div className="text-3xl font-extrabold text-gray-900">35%</div>
+                <div className="text-xs text-gray-400 uppercase">De limit. total utilizado no mês</div>
+                <div className="mt-3 text-sm text-gray-600">
+                  <div className="flex justify-between"><span>Utilizado</span><span>{fmtBRL(limiteUtilizado)}</span></div>
+                  <div className="flex justify-between font-bold text-green-700"><span>Disponível</span><span>{fmtBRL(limiteDisponivel)}</span></div>
+                </div>
+              </div>
+              <div className="mt-4" style={{ width: "100%", height: 60 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPie>
+                    <Pie
+                      data={[
+                        { name: "Used", value: limiteUtilizado },
+                        { name: "Avail", value: limiteDisponivel },
+                      ]}
+                      innerRadius={18}
+                      outerRadius={28}
+                      dataKey="value"
+                      startAngle={180}
+                      endAngle={-180}
+                    >
+                      <Cell fill="#111827" />
+                      <Cell fill="#E5E7EB" />
+                    </Pie>
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Ticket Médio */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+              <div className="text-sm text-gray-500 font-bold uppercase">Ticket Médio</div>
+              <div className="mt-4 flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-extrabold text-gray-900">{ticketMedio}</div>
+                  <div className="text-xs text-gray-400 uppercase">Valor médio das transações</div>
+                </div>
+                <div style={{ width: 120, height: 60 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsArea data={transacoesSeries}>
+                      <Area dataKey="valor" stroke="#111827" fill="#6B7280" fillOpacity={0.08} />
+                    </RechartsArea>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+
+            {/* Total de Cartões */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
+              <div className="text-sm text-gray-500 font-bold uppercase">Total de Cartões</div>
+              <div className="mt-4 flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-extrabold text-gray-900">{kpiTotalCartoes.toLocaleString()}</div>
+                  <div className="text-xs text-gray-400 uppercase">Cartões ativos</div>
+                </div>
+                <div style={{ width: 120, height: 60 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsBar data={[{ name: "T", v: kpiTotalCartoes }]}>
+                      <Bar dataKey="v" fill="#111827" />
+                    </RechartsBar>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md border border-border p-6">
-            <h3 className="text-card-foreground mb-2" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-              Chargebacks
-            </h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-                R$ {(135258 * fator).toLocaleString('pt-BR')}
-              </span>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <TrendingDown className="w-4 h-4" />
-                <span>3% MENOR QUE O ÚLTIMO MÊS</span>
+          {/* Linha 2: volume modal + faturas + aderência */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Volume por Modalidade (donut com legenda) */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-800">Volume por modalidade</h3>
+                <div className="text-xs text-gray-400">R$</div>
+              </div>
+
+              <div className="flex items-center mt-4">
+                <div style={{ width: 160, height: 160 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPie>
+                      <Pie
+                        data={volumeModalidadeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={72}
+                        dataKey="value"
+                        paddingAngle={2}
+                      >
+                        <Cell fill="#111827" />
+                        <Cell fill="#6B7280" />
+                        <Cell fill="#9CA3AF" />
+                      </Pie>
+                    </RechartsPie>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="ml-6 text-sm text-gray-700 space-y-2">
+                  {volumeModalidadeData.map((d) => (
+                    <div key={d.name} className="flex justify-between w-40">
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 10, borderRadius: 4, background: d.name === "Débito" ? "#111827" : d.name === "Crédito" ? "#6B7280" : "#9CA3AF" }} />
+                        <div>{d.name}</div>
+                      </div>
+                      <div className="font-bold">{Math.round(d.value).toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Faturas (donut + números) */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-800">Faturas</h3>
+                <div className="text-sm text-gray-400">Status</div>
+              </div>
+
+              <div className="flex items-center mt-4">
+                <div style={{ width: 140, height: 140 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPie>
+                      <Pie
+                        data={faturasData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={44}
+                        outerRadius={66}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        <Cell fill="#111827" />
+                        <Cell fill="#6B7280" />
+                        <Cell fill="#9CA3AF" />
+                      </Pie>
+                    </RechartsPie>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="ml-6">
+                  <div className="text-2xl font-extrabold text-gray-900">{Math.floor(faturasData[0].value).toLocaleString()}</div>
+                  <div className="text-xs text-gray-400 uppercase">Pagas</div>
+                  <div className="mt-3 text-sm text-gray-700">
+                    <div className="flex justify-between"><span>Abertas</span><span>{Math.floor(faturasData[1].value).toLocaleString()}</span></div>
+                    <div className="flex justify-between mt-1"><span>Atrasadas</span><span>{Math.floor(faturasData[2].value).toLocaleString()}</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Aderência (gauge semi-donut com número grande) */}
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col items-center justify-center">
+              <div className="text-sm text-gray-500 font-bold uppercase">Aderência</div>
+              <div className="relative flex items-center justify-center mt-4">
+                <div style={{ width: 160, height: 100 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPie startAngle={180} endAngle={0}>
+                      <Pie
+                        data={[{ name: "Ativos", value: aderenciaPct }, { name: "Inativos", value: 100 - aderenciaPct }]}
+                        cx="50%"
+                        cy="100%"
+                        innerRadius={48}
+                        outerRadius={80}
+                        dataKey="value"
+                      >
+                        <Cell fill="#111827" />
+                        <Cell fill="#E5E7EB" />
+                      </Pie>
+                    </RechartsPie>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* número grande sobreposto */}
+                <div className="absolute text-center" style={{ transform: "translateY(8px)" }}>
+                  <div className="text-4xl font-extrabold text-gray-900">{aderenciaPct}%</div>
+                  <div className="text-xs text-gray-400 uppercase">cooperados com cartão ativo</div>
+                </div>
+              </div>
+
+              {/* segundo indicador de ativação (menor) */}
+              <div className="mt-6 text-center">
+                <div className="text-3xl font-bold text-gray-900">{ativacaoPct}%</div>
+                <div className="text-xs text-gray-400 uppercase">de ativação para novos cartões</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Linha 3: Emissões / Cancelamentos / Emissões por produto */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Cartões emitidos</div>
+              <div className="text-4xl font-extrabold text-gray-900 mt-4">{Math.floor(6320 * fator).toLocaleString()}</div>
+              <div className="text-xs text-red-500 font-bold mt-2 uppercase">▼ 3% vs último mês</div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Cancelamentos</div>
+              <div className="text-4xl font-extrabold text-gray-900 mt-4">{Math.floor(684 * fator).toLocaleString()}</div>
+              <div className="text-xs text-green-600 font-bold mt-2 uppercase">▼ 1% vs último mês</div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Emissões por produto</div>
+              <div className="mt-4 text-sm space-y-2">
+                <div className="flex justify-between"><span>Visa Infinite</span><span className="font-bold">{Math.floor(3421 * fator).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Visa Gold</span><span className="font-bold">{Math.floor(2847 * fator).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Visa Classic</span><span className="font-bold">{Math.floor(4190 * fator).toLocaleString()}</span></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Linha 4: Inadimplência (grande) + chargebacks / tendência */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 lg:col-span-2">
+              <div className="text-sm text-gray-500 font-bold uppercase mb-4">Inadimplência</div>
+              <div style={{ height: 260 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBar data={inadimplenciaData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis dataKey="cat" stroke="#9CA3AF" />
+                    <YAxis stroke="#9CA3AF" />
+                    <Tooltip />
+                    <Bar dataKey="pj" fill="#111827" />
+                    <Bar dataKey="pf" fill="#9CA3AF" />
+                  </RechartsBar>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="text-sm text-gray-500 font-bold uppercase">Tendência de atraso</div>
+                <div className="text-4xl font-extrabold text-gray-900 mt-4">16%</div>
+                <div className="text-xs text-green-600 font-bold mt-2 uppercase">▼ 1% vs último mês</div>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="text-sm text-gray-500 font-bold uppercase">Chargebacks</div>
+                <div className="text-3xl font-extrabold text-gray-900 mt-4">{fmtBRL(135258 * fator)}</div>
+                <div className="text-xs text-green-600 font-bold mt-2 uppercase">▼ 3% vs último mês</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Linha 5: Oportunidades / Propensão / Queda (microcharts) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Oportunidades</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(23715 * fator).toLocaleString()}</div>
+              <div style={{ height: 60, marginTop: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsArea data={oportunidadesSeries}>
+                    <Area dataKey="y" stroke="#111827" fill="#6B7280" fillOpacity={0.12} />
+                  </RechartsArea>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Propensão a Upgrade</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(1320 * fator).toLocaleString()}</div>
+              <div style={{ height: 60, marginTop: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsArea data={propensaoSeries}>
+                    <Area dataKey="y" stroke="#111827" fill="#6B7280" fillOpacity={0.12} />
+                  </RechartsArea>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Queda de uso</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(216 * fator).toLocaleString()}</div>
+              <div style={{ height: 60, marginTop: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsArea data={quedaSeries}>
+                    <Area dataKey="y" stroke="#111827" fill="#6B7280" fillOpacity={0.12} />
+                  </RechartsArea>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* VISÃO OPERACIONAL */
+        <div className="space-y-6">
+          {/* Linha 1 operacional: Gestão da base / Sol. recentes / Cartões ativos */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Solicitações recentes de cartões</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(183 * fator)}</div>
+              <div style={{ height: 60, marginTop: 8 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsArea data={[{ d: 1, v: 10 }, { d: 2, v: 20 }, { d: 3, v: 15 }]}>
+                    <Area dataKey="v" stroke="#111827" fill="#6B7280" fillOpacity={0.08} />
+                  </RechartsArea>
+                </ResponsiveContainer>
+              </div>
+            </div>
 
-      {/* Last Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Oportunidades
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-              {Math.floor(23715 * fator).toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1 text-accent">
-              <TrendingUp className="w-4 h-4" />
-              <span>17% MAIOR QUE O ÚLTIMO MÊS</span>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Cartões ativos x inativos</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiTotalCartoes.toLocaleString()}</div>
+              <div className="text-xs text-gray-400 mt-1">Ativos: {Math.floor(kpiTotalCartoes * 0.92).toLocaleString()} • Inativos: {Math.floor(kpiTotalCartoes * 0.08).toLocaleString()}</div>
+              <div style={{ marginTop: 10, height: 60 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPie>
+                    <Pie data={[{ name: "Ativos", value: kpiTotalCartoes * 0.92 }, { name: "Inativos", value: kpiTotalCartoes * 0.08 }]} innerRadius={18} outerRadius={28} dataKey="value">
+                      <Cell fill="#111827" />
+                      <Cell fill="#E5E7EB" />
+                    </Pie>
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Cartões bloqueados/desbloqueados</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(42 * fator)}</div>
+              <div style={{ marginTop: 10, height: 60 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBar data={[{ name: "Bloq", v: 42 * fator }, { name: "Desb", v: 128 * fator }]}>
+                    <Bar dataKey="v" fill="#111827" />
+                  </RechartsBar>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Propensão a upgrade
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-              {Math.floor(1320 * fator).toLocaleString('pt-BR')}
-            </span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>0,5% MENOR QUE O ÚLTIMO MÊS</span>
+          {/* Linha 2 operacional: Processos / Emissões por BIN / Entregas pendentes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Emissões por BIN</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(4120 * fator).toLocaleString()}</div>
+              <div className="text-xs text-gray-400 mt-1">Controla volume de cartões produzidos</div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Entregas pendentes</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(128 * fator)}</div>
+              <div className="text-xs text-gray-400 mt-1">Mostra cartões ainda não recebidos</div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Carteiras cadastradas</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{walletsData.length}</div>
+              <div style={{ marginTop: 10, height: 80 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBar layout="vertical" data={walletsData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                    <XAxis type="number" stroke="#9CA3AF" />
+                    <YAxis dataKey="name" type="category" stroke="#9CA3AF" />
+                    <Tooltip />
+                    <Bar dataKey="uso" fill="#111827" />
+                  </RechartsBar>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            Queda de uso
-          </h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-              {Math.floor(216 * fator)}
-            </span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>3% MENOR QUE O ÚLTIMO MÊS</span>
+          {/* Linha 3 operacional: Serviços adicionais / Sala VIP / Limites */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Serviços Adicionais (SMS / Seguro)</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">R$ {Math.floor(5200 * fator).toLocaleString()}</div>
+              <div className="text-xs text-gray-400 mt-1">Receita / adesões</div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-// --- Componentes do Dashboard (KpiCard, AlertasBloqueios, etc) ---
-function KpiCard({
-  title,
-  value,
-  change,
-  changeType,
-  icon: Icon,
-}: KpiCardProps) {
-  const changeColor = {
-    positive: "text-accent",
-    negative: "text-muted-foreground",
-    info: "text-muted-foreground",
-  }[changeType];
-  return (
-    <div className="p-5 bg-white rounded-xl shadow-md border border-border">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-          {title}
-        </h3>
-      </div>
-      <div className="border-b border-border pb-4">
-        <p className="text-foreground" style={{ fontSize: "40px", lineHeight: "1.3" }}>
-          {value}
-        </p>
-        {change && (
-          <div className="flex items-center gap-2 mt-2">
-            {changeType === "positive" && (
-              <TrendingUp className="w-6 h-6 text-accent" />
-            )}
-            {changeType === "negative" && (
-              <TrendingDown className="w-6 h-6 text-muted-foreground" />
-            )}
-            <div className="flex items-center gap-2">
-              <span className={`${changeColor}`} style={{ fontSize: "26px", lineHeight: "1.3" }}>
-                {change.split(" ")[0]}
-              </span>
-              <span className="text-muted-foreground text-xs uppercase tracking-wider">
-                {change.split(" ").slice(1).join(" ") || "MENOR QUE O\nÚLTIMO MÊS"}
-              </span>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Uso de Benefícios - Sala VIP</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(124 * fator)}</div>
+              <div className="text-xs text-gray-400 mt-1">Volume de utilização</div>
             </div>
-          </div>
-        )}
-      </div>
-      {title === "Transações Hoje" && (
-        <div className="mt-4">
-          <p className="text-muted-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-            No mês
-          </p>
-          <div className="flex items-center gap-2 mt-2">
-            <p className="text-foreground" style={{ fontSize: "26px", lineHeight: "1.3" }}>
-              1.122.847
-            </p>
-            <TrendingUp className="w-6 h-6 text-accent" />
-            <div>
-              <span className="text-muted-foreground" style={{ fontSize: "16px" }}>
-                1%
-              </span>
-              <span className="text-xs text-muted-foreground ml-2 uppercase">
-                MAIOR QUE O ÚLTIMO MÊS
-              </span>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+              <div className="text-sm text-gray-500 font-bold uppercase">Contestações</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{Math.floor(23 * fator)}</div>
+              <div className="text-xs text-gray-400 mt-1">Registros abertos</div>
             </div>
           </div>
         </div>
       )}
-      {title === "Limite de Crédito" && (
-        <div className="mt-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-foreground">Utilizado</span>
-            <span className="text-foreground">R$ 105.200,00</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-accent">Disponível</span>
-            <span className="text-accent">R$ 126.800,00</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-function AlertasBloqueios({ data }: AlertasBloqueiosProps) {
-  return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <AlertTriangle className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-          Faturas
-        </h3>
-      </div>
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-chart-1"></div>
-          <span className="text-foreground flex-1">Faixas</span>
-          <span className="text-foreground">
-            {data.bloqueados > 50 ? "25.649" : (25649 / 10).toFixed(0)} {/* Mock dinâmico */}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-chart-2"></div>
-          <span className="text-foreground flex-1">Adesão</span>
-          <span className="text-foreground">31.315</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-chart-3"></div>
-          <span className="text-foreground flex-1">Atrasadas</span>
-          <span className="text-foreground">13.861</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-function LimiteDeCredito({ data, percentual }: LimiteDeCreditoProps) {
-  return (
-    <div className="p-5 bg-white rounded-xl shadow-lg">
-      <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-        <Landmark className="w-5 h-5 mr-2 text-hub-teal" /> Limite de Crédito
-      </h3>
-      <div className="mt-4">
-        <div className="w-full bg-muted rounded-full h-2.5">
-          <div
-            className="h-2.5 rounded-full bg-primary"
-            style={{ width: `${percentual}%` }}
-          ></div>
-        </div>
-        <div className="flex justify-between mt-2 text-sm">
-          <span className="font-medium text-gray-700">Utilizado</span>
-          <span className="font-bold text-gray-800">
-            {data.utilizado.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-700">Disponível</span>
-          <span className="font-bold text-green-600">
-            {data.disponivel.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-function ResumoDeFaturas({ data }: ResumoDeFaturasProps) {
-  return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FileCheck className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-          Resumo de Faturas
-        </h3>
-      </div>
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 text-foreground">
-            <FileClock className="w-4 h-4" /> Abertas
-          </span>
-          <span className="text-foreground">{data.abertas}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 text-foreground">
-            <FileCheck className="w-4 h-4" /> Pagas
-          </span>
-          <span className="text-accent">{data.pagas}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 text-foreground">
-            <FileX className="w-4 h-4" /> Vencidas
-          </span>
-          <span className="text-destructive">{data.vencidas}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-function SolicitacoesRecentes({ data }: { data: Solicitacao[] }) {
-  return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FileText className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-          Solicitações Recentes
-        </h3>
-      </div>
-      <div className="space-y-3">
-        {data.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between py-2 border-b border-border last:border-0"
-          >
-            <div>
-              <p className="text-foreground">{item.nome}</p>
-              <p className="text-sm text-muted-foreground">{item.card}</p>
-            </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              {item.status}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-function TransacoesRecentes({ data }: { data: Transacao[] }) {
-  return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart2 className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-          Transações Recentes
-        </h3>
-      </div>
-      <div className="space-y-3">
-        {data.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between py-2 border-b border-border last:border-0"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted rounded-lg">
-                <Landmark className="w-5 h-5 text-card-foreground" />
-              </div>
-              <div>
-                <p className="text-foreground">{item.nome}</p>
-                <p className="text-sm text-muted-foreground">{item.card}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-foreground">{item.valor}</p>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
-                {item.status}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-function AtividadePorCartao({ data }: { data: Atividade[] }) {
-  return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <PieChart className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: "20px", lineHeight: "1.3" }}>
-          Emissões por produto
-        </h3>
-      </div>
-      <div className="space-y-3">
-        {data.map((item) => (
-          <div key={item.name} className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <span className={`w-3 h-3 rounded-full ${item.color}`}></span>
-              <span className="text-foreground">{item.name}</span>
-            </div>
-            <span className="text-foreground">
-              {item.value.toLocaleString("pt-BR")}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+
 // --- TIPOS ATUALIZADOS PARA COOPERADOS ---
 type StatusConta = "Ativa" | "Bloqueada";
 type TipoVinculo = "Titular" | "Adicional" | "Kids";
