@@ -510,121 +510,40 @@ type KpiCardProps = {
   changeType: 'positive' | 'negative' | 'info';
   icon: React.ElementType;
 };
-type AlertasBloqueiosProps = {
-  data: { bloqueados: number; atrasadas: number };
-};
-type LimiteDeCreditoProps = {
-  data: { utilizado: number; disponivel: number };
-  percentual: number;
-};
-type ResumoDeFaturasProps = {
-  data: { abertas: number; pagas: number; vencidas: number };
-};
-type Solicitacao = {
-  id: number;
-  nome: string;
-  card: string;
-  status: string;
-};
-type Transacao = {
-  id: number;
-  nome: string;
-  card: string;
-  valor: string;
-  status: string;
-};
+type AlertasBloqueiosProps = { data: { bloqueados: number; atrasadas: number } };
+type LimiteDeCreditoProps = { data: { utilizado: number; disponivel: number; total: number }; percentual: number };
+type ResumoDeFaturasProps = { data: { abertas: number; pagas: number; vencidas: number } };
+type Solicitacao = { id: number; nome: string; card: string; status: string };
+type Transacao = { id: number; nome: string; card: string; valor: string; status: string };
 type Atividade = { name: string; value: number; color: string };
 
-// --- Dados Mockados do Dashboard (Updated to match Figma) ---
-const mockKpiData: KpiCardProps[] = [
-  {
-    title: "Transações Hoje",
-    value: "122.847",
-    change: "-3%",
-    changeType: "negative",
-    icon: DollarSign,
-  },
-  {
-    title: "Limite de Crédito",
-    value: "35%",
-    change: "DE LIMIT. TOTAL",
-    changeType: "info",
-    icon: CreditCard,
-  },
-  {
-    title: "Ticket médio",
-    value: "R$ 1.258,00",
-    change: "",
-    changeType: "info",
-    icon: DollarSign,
-  },
-  {
-    title: "Total de Cartões",
-    value: "12.458",
-    change: "",
-    changeType: "info",
-    icon: CreditCard,
-  },
+// --- Dados Mockados BASE do Dashboard (Valores "Visão Central") ---
+const baseKpiData: KpiCardProps[] = [
+  { title: 'Total de Cartões', value: '12,458', change: '+12%', changeType: 'positive', icon: CreditCard },
+  { title: 'Cooperados Ativos', value: '8,342', change: '+8%', changeType: 'positive', icon: Users2 },
+  { title: 'Transações Hoje', value: '2,847', change: '-3%', changeType: 'negative', icon: List },
+  { title: 'Volume Total', value: 'R$ 2.4M', change: '+18%', changeType: 'positive', icon: DollarSign },
+  { title: 'Limite Utilizado', value: 'R$ 105K', change: 'R$ 126.8K disp.', changeType: 'info', icon: Wallet },
+  { title: 'Faturas Vencidas', value: '14', change: 'R$ 12.5K', changeType: 'negative', icon: ShieldAlert },
 ];
-const mockLimiteCredito = {
-  utilizado: 105200.0,
-  disponivel: 126800.0,
-  total: 232000.0,
-};
-const mockResumoFaturas = { abertas: 6, pagas: 8, vencidas: 0 };
-const mockAlertas = { bloqueados: 2, atrasadas: 0 };
-const mockAtividadeCartao: Atividade[] = [
-  {
-    name: "Visa Infinite",
-    value: 3421,
-    color: "bg-chart-1",
-  },
-  { name: "Visa Gold", value: 2847, color: "bg-chart-2" },
-  { name: "Visa Classic", value: 4190, color: "bg-chart-3" },
-  { name: "Visa Electron", value: 2000, color: "bg-chart-4" },
+const baseLimiteCredito = { utilizado: 105200.00, disponivel: 126800.00, total: 232000.00 };
+const baseResumoFaturas = { abertas: 6, pagas: 8, vencidas: 0 };
+const baseAlertas = { bloqueados: 2, atrasadas: 0 };
+const baseAtividadeCartao: Atividade[] = [
+  { name: 'Visa Infinite', value: 3421, color: 'bg-indigo-600' },
+  { name: 'Visa Gold', value: 2847, color: 'bg-yellow-500' },
+  { name: 'Visa Classic', value: 4190, color: 'bg-sky-500' },
+  { name: 'Visa Electron', value: 2000, color: 'bg-teal-500' },
 ];
-const mockSolicitacoesRecentes: Solicitacao[] = [
-  {
-    id: 1,
-    nome: "Daniel C. Oliveira",
-    card: "Visa Classic - R$ 5.000,00",
-    status: "Em análise",
-  },
-  {
-    id: 2,
-    nome: "Ana Beatriz Silva",
-    card: "Visa Infinite - R$ 25.000,00",
-    status: "Em análise",
-  },
-  {
-    id: 3,
-    nome: "Roberto L. Souza",
-    card: "Visa Gold - R$ 10.000,00",
-    status: "Em análise",
-  },
+const baseSolicitacoesRecentes: Solicitacao[] = [
+  { id: 1, nome: 'Daniel C. Oliveira', card: 'Visa Classic - R$ 5.000,00', status: 'Em análise' },
+  { id: 2, nome: 'Ana Beatriz Silva', card: 'Visa Infinite - R$ 25.000,00', status: 'Em análise' },
+  { id: 3, nome: 'Roberto L. Souza', card: 'Visa Gold - R$ 10.000,00', status: 'Em análise' },
 ];
-const mockTransacoesRecentes: Transacao[] = [
-  {
-    id: 1,
-    nome: "Supermercado Extra",
-    card: "Supermercado",
-    valor: "R$ 205.352",
-    status: "Aprovada",
-  },
-  {
-    id: 2,
-    nome: "Posto Shell",
-    card: "Gasolina",
-    valor: "R$ 150.00",
-    status: "Aprovada",
-  },
-  {
-    id: 3,
-    nome: "Amazon.com.br",
-    card: "Online",
-    valor: "R$ 89.90",
-    status: "Aprovada",
-  },
+const baseTransacoesRecentes: Transacao[] = [
+  { id: 1, nome: 'Supermercado Extra', card: 'Supermercado', valor: 'R$ 205.352', status: 'Aprovada' },
+  { id: 2, nome: 'Posto Shell', card: 'Gasolina', valor: 'R$ 150.00', status: 'Aprovada' },
+  { id: 3, nome: 'Amazon.com.br', card: 'Online', valor: 'R$ 89.90', status: 'Aprovada' },
 ];
 
 // --- Componente PaginaDashboard ---
@@ -645,444 +564,255 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
     );
   }
 
-  const percentualUtilizado =
-    (mockLimiteCredito.utilizado / mockLimiteCredito.total) *
-    100;
+  // --- Lógica de Simulação de Dados Filtrados ---
+  // Em uma aplicação real, isso viria do backend com base nos IDs selecionados.
+  // Aqui vamos aplicar um "fator de redução" para simular que ao filtrar, os números diminuem.
+  
+  let fator = 1.0; // Visão Central (100%)
+  if (coopSelecionada) fator = 0.4; // Visão Cooperativa (40% do total)
+  if (paSelecionado) fator = 0.1; // Visão PA (10% do total)
+
+  // Se o usuário logado JÁ É uma Cooperativa, ele começa com fator 0.4
+  if (usuario.perfil === 'Cooperativa') fator = 0.4;
+  // Se o usuário logado JÁ É um PA, ele começa com fator 0.1
+  if (usuario.perfil === 'PA') fator = 0.1;
+
+  // Se o usuário for Cooperativa e filtrar por PA, reduz mais
+  if (usuario.perfil === 'Cooperativa' && paSelecionado) fator = 0.1;
+
+
+  const dadosFiltrados = {
+    kpis: baseKpiData.map(kpi => ({
+      ...kpi,
+      value: kpi.title.includes('R$') 
+        ? `R$ ${(parseFloat(kpi.value.replace(/[^0-9.]/g, '')) * fator).toFixed(1)}M` // Hack simples para manter o formato M/K
+        : Math.floor(parseInt(kpi.value.replace(/,/g, '')) * fator).toLocaleString()
+    })),
+    limite: {
+      utilizado: baseLimiteCredito.utilizado * fator,
+      disponivel: baseLimiteCredito.disponivel * fator,
+      total: baseLimiteCredito.total * fator
+    },
+    faturas: {
+      abertas: Math.ceil(baseResumoFaturas.abertas * fator),
+      pagas: Math.ceil(baseResumoFaturas.pagas * fator),
+      vencidas: Math.ceil(baseResumoFaturas.vencidas * fator)
+    },
+    alertas: {
+      bloqueados: Math.ceil(baseAlertas.bloqueados * fator),
+      atrasadas: Math.ceil(baseAlertas.atrasadas * fator)
+    },
+    atividade: baseAtividadeCartao.map(a => ({ ...a, value: Math.floor(a.value * fator) }))
+  };
+
+  const percentualUtilizado = (dadosFiltrados.limite.utilizado / dadosFiltrados.limite.total) * 100;
+
+  // --- Listas para os Selects ---
+  const cooperativasDisponiveis = mockCooperativas.filter(c => c.centralId === usuario.centralId && c.tipo === 'Singular');
+  
+  // PAs dependem da cooperativa selecionada (ou da coop do usuário logado)
+  const idCoopParaFiltroPA = usuario.perfil === 'Cooperativa' ? usuario.cooperativaId : coopSelecionada;
+  const pasDisponiveis = mockPontosAtendimento.filter(pa => pa.cooperativaId === idCoopParaFiltroPA);
+
   return (
     <div className="space-y-6">
-      {/* Top KPI Cards - matching Figma layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {mockKpiData.map((kpi) => (
+      
+      {/* --- BARRA DE FILTROS DO DASHBOARD --- */}
+      {(usuario.perfil === 'Central' || usuario.perfil === 'Cooperativa') && (
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row md:items-center justify-between">
+          <div className="mb-2 md:mb-0">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center">
+              <Filter className="w-4 h-4 mr-2 text-hub-teal"/> Filtros de Visualização
+            </h3>
+          </div>
+          <div className="flex space-x-4">
+            {/* Select Cooperativa (Apenas para Central) */}
+            {usuario.perfil === 'Central' && (
+              <div>
+                <select 
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-hub-teal bg-gray-50"
+                  value={coopSelecionada}
+                  onChange={(e) => {
+                    setCoopSelecionada(e.target.value);
+                    setPaSelecionada(''); // Reseta PA ao mudar coop
+                  }}
+                >
+                  <option value="">Todas as Cooperativas</option>
+                  {cooperativasDisponiveis.map(c => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Select PA (Para Central e Cooperativa) */}
+            <div>
+              <select 
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-hub-teal bg-gray-50"
+                value={paSelecionado}
+                onChange={(e) => setPaSelecionada(e.target.value)}
+                disabled={usuario.perfil === 'Central' && !coopSelecionada} // Central só habilita PA se escolher Coop
+              >
+                <option value="">Todos os PAs</option>
+                {pasDisponiveis.map(pa => (
+                  <option key={pa.id} value={pa.id}>{pa.nome}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grid de KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        {dadosFiltrados.kpis.map((kpi) => (
           <KpiCard key={kpi.title} {...kpi} />
         ))}
       </div>
-      
-      {/* Second Row - Volume por modalidade, Transações Recentes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <PieChart className="w-5 h-5 text-card-foreground" />
-            <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-              Volume por modalidade
-            </h3>
-          </div>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-chart-1"></div>
-              <span className="text-foreground flex-1">Débito</span>
-              <span className="text-foreground">R$ 500,00</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-chart-2"></div>
-              <span className="text-foreground flex-1">Crédito</span>
-              <span className="text-foreground">R$ 296,00</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-chart-3"></div>
-              <span className="text-foreground flex-1">Parcelado</span>
-              <span className="text-foreground">R$ 534,19</span>
-            </div>
-          </div>
-        </div>
-        
-        <TransacoesRecentes data={mockTransacoesRecentes} />
-      </div>
-      
-      {/* Third Row - More detailed cards */}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <AlertasBloqueios data={mockAlertas} />
-        <AtividadePorCartao data={mockAtividadeCartao} />
-        <ResumoDeFaturas data={mockResumoFaturas} />
+        <AlertasBloqueios data={dadosFiltrados.alertas} />
+        <LimiteDeCredito data={dadosFiltrados.limite} percentual={percentualUtilizado} />
+        <ResumoDeFaturas data={dadosFiltrados.faturas} />
       </div>
-      
-      {/* Fourth Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Aderência</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>76%</div>
-              <div className="text-muted-foreground text-sm">de cooperados com cartão ativo</div>
-            </div>
-            <div className="text-center">
-              <div className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>92%</div>
-              <div className="text-muted-foreground text-sm">de adesão para novos cartões</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Carteiras digitais</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-foreground">Apple Pay</span>
-              <div className="flex gap-4">
-                <span className="text-muted-foreground text-sm">23%</span>
-                <span className="text-muted-foreground text-sm">1.350 / 1.350</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-foreground">Google Pay</span>
-              <div className="flex gap-4">
-                <span className="text-muted-foreground text-sm">40%</span>
-                <span className="text-muted-foreground text-sm">3.225 / 2.110</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-foreground">Samsung Pay</span>
-              <div className="flex gap-4">
-                <span className="text-muted-foreground text-sm">08%</span>
-                <span className="text-muted-foreground text-sm">421 / 98</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Cartões Virtuais</h3>
-          <div className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>28.973</div>
-        </div>
-      </div>
-      
-      {/* Fifth Row - Bottom cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Cartões emitidos</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>6.320</span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>3% MENOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Cancelamentos</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>684</span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>1% MENOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Emissões por produto</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-foreground">Visa Infinite</span>
-              <span className="text-foreground">3.421</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground">Visa Gold</span>
-              <span className="text-foreground">2.847</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground">Visa Classic</span>
-              <span className="text-foreground">4.190</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-foreground">Visa Electron</span>
-              <span className="text-foreground">2.000</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* More rows following the Figma pattern */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SolicitacoesRecentes data={mockSolicitacoesRecentes} />
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Inadimplência</h3>
-          <div className="h-48 flex items-center justify-center text-muted-foreground">
-            [Gráfico de barras]
-          </div>
-        </div>
-        
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-md border border-border p-6">
-            <h3 className="text-card-foreground mb-2" style={{ fontSize: '20px', lineHeight: '1.3' }}>Tendência de atraso</h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>16%</span>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <TrendingDown className="w-4 h-4" />
-                <span>1% MENOR QUE O ÚLTIMO MÊS</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-md border border-border p-6">
-            <h3 className="text-card-foreground mb-2" style={{ fontSize: '20px', lineHeight: '1.3' }}>Chargebacks</h3>
-            <div className="flex items-baseline gap-2">
-              <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>R$ 135.258,00</span>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <TrendingDown className="w-4 h-4" />
-                <span>3% MENOR QUE O ÚLTIMO MÊS</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Last Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Oportunidades</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>23.715</span>
-            <div className="flex items-center gap-1 text-accent">
-              <TrendingUp className="w-4 h-4" />
-              <span>17% MAIOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Propensão a upgrade</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>1.320</span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>0,5% MENOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-xl shadow-md border border-border p-6">
-          <h3 className="text-card-foreground mb-4" style={{ fontSize: '20px', lineHeight: '1.3' }}>Queda de uso</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>216</span>
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingDown className="w-4 h-4" />
-              <span>3% MENOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
-        </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <SolicitacoesRecentes data={baseSolicitacoesRecentes} /> {/* Mantemos estático para exemplo */}
+        <TransacoesRecentes data={baseTransacoesRecentes} />
+        <AtividadePorCartao data={dadosFiltrados.atividade} />
       </div>
     </div>
   );
 }
 
 // --- Componentes do Dashboard (KpiCard, AlertasBloqueios, etc) ---
-function KpiCard({
-  title,
-  value,
-  change,
-  changeType,
-  icon: Icon,
-}: KpiCardProps) {
-  const changeColor = {
-    positive: "text-accent",
-    negative: "text-muted-foreground",
-    info: "text-muted-foreground",
-  }[changeType];
+function KpiCard({ title, value, change, changeType, icon: Icon }: KpiCardProps) {
+  const changeColor = { positive: 'text-green-600', negative: 'text-red-600', info: 'text-gray-500' }[changeType];
   return (
-    <div className="p-5 bg-white rounded-xl shadow-md border border-border">
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-          {title}
-        </h3>
-      </div>
-      <div className="border-b border-border pb-4">
-        <p className="text-foreground" style={{ fontSize: '40px', lineHeight: '1.3' }}>
-          {value}
-        </p>
-        {change && (
-          <div className="flex items-center gap-2 mt-2">
-            {changeType === "positive" && (
-              <TrendingUp className="w-6 h-6 text-accent" />
-            )}
-            {changeType === "negative" && (
-              <TrendingDown className="w-6 h-6 text-muted-foreground" />
-            )}
-            <div className="flex items-center gap-2">
-              <span className={`${changeColor}`} style={{ fontSize: '26px', lineHeight: '1.3' }}>
-                {change.split(' ')[0]}
-              </span>
-              <span className="text-muted-foreground text-xs uppercase tracking-wider">
-                {change.split(' ').slice(1).join(' ') || 'MENOR QUE O\nÚLTIMO MÊS'}
-              </span>
-            </div>
-          </div>
-        )}
-      </div>
-      {title === "Transações Hoje" && (
-        <div className="mt-4">
-          <p className="text-muted-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>No mês</p>
-          <div className="flex items-center gap-2 mt-2">
-            <p className="text-foreground" style={{ fontSize: '26px', lineHeight: '1.3' }}>1.122.847</p>
-            <TrendingUp className="w-6 h-6 text-accent" />
-            <div>
-              <span className="text-muted-foreground" style={{ fontSize: '16px' }}>1%</span>
-              <span className="text-xs text-muted-foreground ml-2 uppercase">MAIOR QUE O ÚLTIMO MÊS</span>
-            </div>
-          </div>
+    <div className="p-5 bg-white rounded-xl shadow-lg border border-gray-100">
+      <div className="flex justify-between items-center">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{title}</h3>
+        <div className="p-2 bg-gray-50 rounded-lg">
+           <Icon className="w-5 h-5 text-hub-teal" />
         </div>
-      )}
-      {title === "Limite de Crédito" && (
-        <div className="mt-4 space-y-2">
-          <div className="flex justify-between">
-            <span className="text-foreground">Utilizado</span>
-            <span className="text-foreground">R$ 105.200,00</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-accent">Disponível</span>
-            <span className="text-accent">R$ 126.800,00</span>
-          </div>
-        </div>
-      )}
+      </div>
+      <p className="mt-3 text-2xl font-bold text-gray-800">{value}</p>
+      <div className="flex items-center mt-2 text-xs">
+        <span className={`flex items-center font-bold ${changeColor}`}>
+          {changeType === 'positive' && <TrendingUp className="w-3 h-3 mr-1" />}
+          {changeType === 'negative' && <TrendingDown className="w-3 h-3 mr-1" />}
+          {change}
+        </span>
+        {changeType !== 'info' && <span className="ml-1 text-gray-400">vs mês anterior</span>}
+      </div>
     </div>
   );
 }
 
 function AlertasBloqueios({ data }: AlertasBloqueiosProps) {
-  // ... (código idêntico)
   return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <AlertTriangle className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-          Faturas
-        </h3>
-      </div>
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-chart-1"></div>
-          <span className="text-foreground flex-1">Faixas</span>
-          <span className="text-foreground">25.649</span>
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+      <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-4">
+        <AlertTriangle className="w-5 h-5 mr-2 text-yellow-500" /> Alertas e Bloqueios
+      </h3>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center p-4 bg-red-50 border border-red-100 rounded-xl">
+          <div>
+             <span className="block font-bold text-red-800 text-sm">Cartões Bloqueados</span>
+             <span className="text-xs text-red-600">Aguardando análise</span>
+          </div>
+          <span className="text-2xl font-bold text-red-700">{data.bloqueados}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-chart-2"></div>
-          <span className="text-foreground flex-1">Adesão</span>
-          <span className="text-foreground">31.315</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="w-3 h-3 rounded-full bg-chart-3"></div>
-          <span className="text-foreground flex-1">Atrasadas</span>
-          <span className="text-foreground">13.861</span>
+        <div className="flex justify-between items-center p-4 bg-orange-50 border border-orange-100 rounded-xl">
+          <div>
+             <span className="block font-bold text-orange-800 text-sm">Faturas Atrasadas</span>
+             <span className="text-xs text-orange-600"> 5 dias de atraso</span>
+          </div>
+          <span className="text-2xl font-bold text-orange-700">{data.atrasadas}</span>
         </div>
       </div>
     </div>
   );
 }
-function LimiteDeCredito({
-  data,
-  percentual,
-}: LimiteDeCreditoProps) {
-  // ... (código idêntico)
+
+function LimiteDeCredito({ data, percentual }: LimiteDeCreditoProps) {
   return (
-    <div className="p-5 bg-white rounded-xl shadow-lg">
-      <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-        <Landmark className="w-5 h-5 mr-2 text-hub-teal" />{" "}
-        Limite de Crédito
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+      <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-6">
+        <Landmark className="w-5 h-5 mr-2 text-hub-teal" /> Limite de Crédito Global
       </h3>
-      <div className="mt-4">
-        <div className="w-full bg-muted rounded-full h-2.5">
-          <div
-            className="h-2.5 rounded-full bg-primary"
-            style={{
-              width: `${percentual}%`,
-            }}
-          ></div>
+      
+      <div className="relative pt-2">
+        <div className="flex mb-2 items-center justify-between">
+          <div className="text-right">
+            <span className="text-xs font-semibold inline-block text-hub-teal">
+              {percentual.toFixed(1)}% Utilizado
+            </span>
+          </div>
         </div>
-        <div className="flex justify-between mt-2 text-sm">
-          <span className="font-medium text-gray-700">
-            Utilizado
-          </span>
-          <span className="font-bold text-gray-800">
-            {data.utilizado.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-          </span>
+        <div className="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-gray-100 border border-gray-200">
+          <div style={{ width: `${percentual}%`, backgroundColor: HUB_BRAND_COLOR }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center transition-all duration-1000"></div>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-700">
-            Disponível
-          </span>
-          <span className="font-bold text-green-600">
-            {data.disponivel.toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            })}
-          </span>
-        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mt-6">
+         <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <span className="block text-xs text-gray-500 uppercase font-bold">Utilizado</span>
+            <span className="block text-lg font-bold text-gray-800">{data.utilizado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+         </div>
+         <div className="text-center p-3 bg-green-50 rounded-lg">
+            <span className="block text-xs text-green-600 uppercase font-bold">Disponível</span>
+            <span className="block text-lg font-bold text-green-700">{data.disponivel.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+         </div>
       </div>
     </div>
   );
 }
 
 function ResumoDeFaturas({ data }: ResumoDeFaturasProps) {
-  // ... (código idêntico)
   return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FileCheck className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-          Resumo de Faturas
-        </h3>
-      </div>
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 text-foreground">
-            <FileClock className="w-4 h-4" /> Abertas
-          </span>
-          <span className="text-foreground">{data.abertas}</span>
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100">
+      <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-4">
+        <FileCheck className="w-5 h-5 mr-2 text-blue-500" /> Resumo de Faturas
+      </h3>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-3">
+          <span className="flex items-center text-gray-600"><FileClock className="w-4 h-4 mr-2 text-blue-400" /> Em Aberto</span>
+          <span className="font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-full">{data.abertas}</span>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 text-foreground">
-            <FileCheck className="w-4 h-4" /> Pagas
-          </span>
-          <span className="text-accent">
-            {data.pagas}
-          </span>
+        <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-3">
+          <span className="flex items-center text-gray-600"><FileCheck className="w-4 h-4 mr-2 text-green-400" /> Pagas</span>
+          <span className="font-bold bg-green-100 text-green-800 px-3 py-1 rounded-full">{data.pagas}</span>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="flex items-center gap-2 text-foreground">
-            <FileX className="w-4 h-4" /> Vencidas
-          </span>
-          <span className="text-destructive">
-            {data.vencidas}
-          </span>
+        <div className="flex justify-between items-center text-sm pb-1">
+          <span className="flex items-center text-gray-600"><FileX className="w-4 h-4 mr-2 text-red-400" /> Vencidas</span>
+          <span className="font-bold bg-red-100 text-red-800 px-3 py-1 rounded-full">{data.vencidas}</span>
         </div>
       </div>
     </div>
   );
 }
-function SolicitacoesRecentes({
-  data,
-}: {
-  data: Solicitacao[];
-}) {
+
+function SolicitacoesRecentes({ data }: { data: Solicitacao[] }) {
   return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <FileText className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-          Solicitações Recentes
-        </h3>
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 xl:col-span-1">
+      <div className="flex justify-between items-center mb-4">
+         <h3 className="text-lg font-semibold text-gray-800">Solicitações Recentes</h3>
+         <button className="text-xs text-hub-teal font-bold hover:underline">Ver todas</button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {data.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between py-2 border-b border-border last:border-0"
-          >
-            <div>
-              <p className="text-foreground">
-                {item.nome}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {item.card}
-              </p>
+          <div key={item.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition">
+            <div className="flex items-center">
+               <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-600 font-bold text-xs mr-3">
+                  {item.nome.charAt(0)}
+               </div>
+               <div>
+                 <p className="font-bold text-gray-800 text-sm">{item.nome}</p>
+                 <p className="text-xs text-gray-500">{item.card}</p>
+               </div>
             </div>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-              {item.status}
-            </span>
+            <span className="text-[10px] font-bold text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-100">{item.status}</span>
           </div>
         ))}
       </div>
@@ -1091,41 +821,29 @@ function SolicitacoesRecentes({
 }
 
 function TransacoesRecentes({ data }: { data: Transacao[] }) {
-  // ... (código idêntico)
   return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <BarChart2 className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-          Transações Recentes
-        </h3>
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 xl:col-span-1">
+      <div className="flex justify-between items-center mb-4">
+         <h3 className="text-lg font-semibold text-gray-800">Transações Recentes</h3>
+         <button className="text-xs text-hub-teal font-bold hover:underline">Ver todas</button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {data.map((item) => (
-          <div
-            key={item.id}
-            className="flex items-center justify-between py-2 border-b border-border last:border-0"
-          >
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-muted rounded-lg">
-                <Landmark className="w-5 h-5 text-card-foreground" />
+          <div key={item.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-50 rounded-lg mr-3 text-blue-600">
+                 <DollarSign className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-foreground">
-                  {item.nome}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {item.card}
-                </p>
+                <p className="font-bold text-gray-800 text-sm">{item.nome}</p>
+                <p className="text-xs text-gray-500">{item.card}</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-foreground">
-                {item.valor}
-              </p>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
-                {item.status}
-              </span>
+                <p className="font-bold text-gray-800 text-sm">{item.valor}</p>
+                <span className="text-[10px] text-green-600 font-bold flex items-center justify-end">
+                   <CheckCircle2 className="w-3 h-3 mr-1"/> {item.status}
+                </span>
             </div>
           </div>
         ))}
@@ -1135,30 +853,24 @@ function TransacoesRecentes({ data }: { data: Transacao[] }) {
 }
 
 function AtividadePorCartao({ data }: { data: Atividade[] }) {
-  // ... (código idêntico)
   return (
-    <div className="bg-white rounded-xl shadow-md border border-border p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <PieChart className="w-5 h-5 text-card-foreground" />
-        <h3 className="text-card-foreground" style={{ fontSize: '20px', lineHeight: '1.3' }}>
-          Emissões por produto
-        </h3>
-      </div>
-      <div className="space-y-3">
+    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-100 xl:col-span-1">
+      <h3 className="text-lg font-semibold text-gray-800 flex items-center mb-6">
+        <PieChart className="w-5 h-5 mr-2 text-orange-500" /> Distribuição da Carteira
+      </h3>
+      <div className="space-y-4">
         {data.map((item) => (
-          <div
-            key={item.name}
-            className="flex justify-between items-center"
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className={`w-3 h-3 rounded-full ${item.color}`}
-              ></span>
-              <span className="text-foreground">{item.name}</span>
-            </div>
-            <span className="text-foreground">
-              {item.value.toLocaleString("pt-BR")}
-            </span>
+          <div key={item.name}>
+             <div className="flex justify-between items-center mb-1 text-sm">
+                <span className="flex items-center text-gray-700 font-medium">
+                   <span className={`w-2 h-2 rounded-full mr-2 ${item.color}`}></span>
+                   {item.name}
+                </span>
+                <span className="font-bold text-gray-900">{item.value.toLocaleString('pt-BR')}</span>
+             </div>
+             <div className="w-full bg-gray-100 rounded-full h-1.5">
+                <div className={`h-1.5 rounded-full ${item.color}`} style={{ width: `${(item.value / 15000) * 100}%` }}></div>
+             </div>
           </div>
         ))}
       </div>
@@ -1462,7 +1174,6 @@ type DetalheCooperadoProps = {
 };
 function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
   const [showModalBloqueio, setShowModalBloqueio] = useState(false);
-  const [showLinkedModal, setShowLinkedModal] = useState<number | null>(null); // ID do cooperado vinculado para mostrar (simulação)
 
   // Encontrar vínculos (Mock Logic)
   const vinculados = mockCooperadosDetalhados.filter(c => 
@@ -1543,7 +1254,7 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
         {/* COLUNA 2: Contas e Cartões */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Card de Contas Correntes */}
+          {/* Card de Contas Correntes (SEM STATUS) */}
           <div className="bg-white p-6 rounded-xl shadow-lg">
             <h4 className="font-semibold text-gray-800 border-b pb-2 mb-4 flex items-center">
               <Wallet className="w-5 h-5 mr-2 text-hub-teal"/> Contas Correntes
@@ -1556,7 +1267,7 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
                     <th className="px-3 py-2">Documento</th>
                     <th className="px-3 py-2">Abertura</th>
                     <th className="px-3 py-2">PA</th>
-                    <th className="px-3 py-2">Status</th>
+                    {/* Coluna Status Removida */}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -1566,14 +1277,10 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
                       <td className="px-3 py-2 text-gray-500">{cc.documentoVinculado}</td>
                       <td className="px-3 py-2 text-gray-500">{cc.dataAbertura}</td>
                       <td className="px-3 py-2"><span className="bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded text-xs">{cc.paVinculado}</span></td>
-                      <td className="px-3 py-2">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${cc.status === 'Ativa' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                          {cc.status}
-                        </span>
-                      </td>
+                      {/* Célula Status Removida */}
                     </tr>
                   ))}
-                  {cooperado.contasCorrentes.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhuma conta corrente direta.</td></tr>}
+                  {cooperado.contasCorrentes.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhuma conta corrente direta.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -1620,14 +1327,13 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
             </div>
           </div>
           
-          {/* Card de Relacionamentos (Titular/Adicional/Kids) */}
+          {/* Card de Relacionamentos */}
           {(vinculados.length > 0 || paiVinculado) && (
             <div className="bg-white p-6 rounded-xl shadow-lg border border-blue-100">
                <h4 className="font-semibold text-blue-800 border-b border-blue-100 pb-2 mb-4 flex items-center">
                 <Users className="w-5 h-5 mr-2"/> Vínculos Familiares / Adicionais
               </h4>
               
-              {/* Se eu sou Titular, mostro meus dependentes */}
               {vinculados.length > 0 && (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-500">Este cooperado é titular das seguintes contas vinculadas:</p>
@@ -1653,7 +1359,6 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
                 </div>
               )}
 
-              {/* Se eu sou Dependente, mostro meu titular */}
               {paiVinculado && (
                  <div className="flex items-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                     <AlertCircle className="w-5 h-5 text-yellow-600 mr-3"/>
@@ -1677,7 +1382,6 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
         </div>
       </div>
 
-      {/* Modal de Bloqueio */}
       {showModalBloqueio && (
         <ModalBloqueioCooperado cooperado={cooperado} onClose={() => setShowModalBloqueio(false)} />
       )}
@@ -1685,26 +1389,20 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
   );
 }
 
-// --- NOVO COMPONENTE: Modal de Bloqueio Granular ---
 function ModalBloqueioCooperado({ cooperado, onClose }: { cooperado: CooperadoDetalhado; onClose: () => void }) {
-  // Estado local para gerenciar os checkboxes
-  const [contasSelecionadas, setContasSelecionadas] = useState<Record<string, boolean>>({});
+  // Estado local para gerenciar os checkboxes APENAS de cartões
   const [cartoesSelecionados, setCartoesSelecionados] = useState<Record<string, boolean>>({});
   const [motivo, setMotivo] = useState('');
 
-  const toggleConta = (id: string) => {
-    setContasSelecionadas(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-  
   const toggleCartao = (id: string) => {
     setCartoesSelecionados(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleSalvarBloqueio = () => {
-    const contas = Object.keys(contasSelecionadas).filter(k => contasSelecionadas[k]);
     const cartoes = Object.keys(cartoesSelecionados).filter(k => cartoesSelecionados[k]);
     
-    alert(`Bloqueio Aplicado!\nContas: ${contas.join(', ')}\nCartões: ${cartoes.join(', ')}\nMotivo: ${motivo}`);
+    // Alerta simplificado pois conta corrente não é mais bloqueável por aqui
+    alert(`Bloqueio Aplicado!\nCartões: ${cartoes.join(', ')}\nMotivo: ${motivo}`);
     onClose();
   };
 
@@ -1722,30 +1420,7 @@ function ModalBloqueioCooperado({ cooperado, onClose }: { cooperado: CooperadoDe
         </div>
 
         <div className="space-y-6 mt-6">
-          {/* Seção Contas Correntes */}
-          <div>
-            <h4 className="font-semibold text-gray-800 mb-2">Contas Correntes</h4>
-            <div className="space-y-2">
-              {cooperado.contasCorrentes.map(cc => (
-                <label key={cc.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={!!contasSelecionadas[cc.id]} 
-                    onChange={() => toggleConta(cc.id)}
-                    className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
-                  />
-                  <div className="ml-3">
-                    <span className="block font-medium">Conta: {cc.numero} (Ag: {cc.agencia})</span>
-                    <span className="text-xs text-gray-500">Banco: {cc.banco} | Doc: {cc.documentoVinculado}</span>
-                  </div>
-                  <span className={`ml-auto text-xs px-2 py-1 rounded ${cc.status === 'Bloqueada' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                    Atual: {cc.status}
-                  </span>
-                </label>
-              ))}
-              {cooperado.contasCorrentes.length === 0 && <p className="text-sm text-gray-400 italic">Nenhuma conta corrente disponível.</p>}
-            </div>
-          </div>
+          {/* Seção Contas Correntes REMOVIDA DAQUI */}
 
           {/* Seção Cartões */}
           <div>
