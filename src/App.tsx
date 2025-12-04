@@ -592,7 +592,7 @@ function LoginButton({
 }
 
 // ====================================
-// 4. O Layout Principal do Dashboard
+// 4. O Layout Principal do Dashboard 
 // ====================================
 function DashboardLayout({
   onLogout,
@@ -607,7 +607,7 @@ function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-background">
-      {/* 4.1. Menu Lateral (Sidebar) - Updated to match Figma design */}
+      {/* 4.1. Menu Lateral (Sidebar) */}
       <aside
         className="flex flex-col w-[280px] bg-white text-foreground shadow-xl"
       >
@@ -617,7 +617,8 @@ function DashboardLayout({
 
         {/* 4.2. Menu de Navegação Principal */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto custom-scrollbar">
-          {/* Links visíveis para todos, EXCETO Master */}
+          
+          {/* --- LINKS OPERACIONAIS (Visíveis para todos, EXCETO Master) --- */}
           {usuario.perfil !== "Master" && (
             <>
               <SidebarLink
@@ -668,18 +669,37 @@ function DashboardLayout({
                 active={activePage === "SalaVIP"}
                 onClick={() => setActivePage("SalaVIP")}
               />
-              {/* Carteiras Virtuais movido para aqui (geral) para não duplicar */}
               <SidebarLink
                 text="Carteiras Virtuais"
                 icon={<Smartphone size={18} />}
                 active={activePage === "CarteirasVirtuais"}
-                onClick={() =>
-                  setActivePage("CarteirasVirtuais")
-                }
+                onClick={() => setActivePage("CarteirasVirtuais")}
+              />
+              
+              {/* ITENS QUE O MASTER NÃO PODE VER (MOVIDOS PARA CÁ) */}
+              <SidebarLink
+                text="Gestão de Limites"
+                icon={<SlidersHorizontal size={18} />}
+                active={activePage === "GestaoLimites"}
+                onClick={() => setActivePage("GestaoLimites")}
+              />
+              <SidebarLink
+                text="Conta Salário"
+                icon={<Wallet size={18} />}
+                active={activePage === "ContaSalario"}
+                onClick={() => setActivePage("ContaSalario")}
+              />
+              <SidebarLink
+                text="Serviços Adicionais"
+                icon={<Coffee size={18} />}
+                active={activePage === "ServicosAdicionais"}
+                onClick={() => setActivePage("ServicosAdicionais")}
               />
             </>
           )}
 
+          {/* --- LINKS ESPECÍFICOS DE GESTÃO (CENTRAL / COOPERATIVA) --- */}
+          
           {/* "Cooperativas" - Apenas Central e Cooperativa */}
           {(usuario.perfil === "Central" ||
             usuario.perfil === "Cooperativa") && (
@@ -691,7 +711,7 @@ function DashboardLayout({
             />
           )}
 
-          {/* "Usuários" - Apenas Central */}
+          {/* "Usuários" - Apenas Central (Master vê apenas configurações) */}
           {usuario.perfil === "Central" && (
             <SidebarLink
               text="Usuários"
@@ -701,25 +721,7 @@ function DashboardLayout({
             />
           )}
 
-          <SidebarLink
-            text="Gestão de Limites"
-            icon={<SlidersHorizontal size={18} />}
-            active={activePage === "GestaoLimites"}
-            onClick={() => setActivePage("GestaoLimites")}
-          />
-          <SidebarLink
-            text="Conta Salário"
-            icon={<Wallet size={18} />}
-            active={activePage === "ContaSalario"}
-            onClick={() => setActivePage("ContaSalario")}
-          />
-          <SidebarLink
-            text="Serviços Adicionais"
-            icon={<Coffee size={18} />}
-            active={activePage === "ServicosAdicionais"}
-            onClick={() => setActivePage("ServicosAdicionais")}
-          />
-
+          {/* "Lançamentos" - Apenas Central */}
           {usuario.perfil === "Central" && (
             <SidebarLink
               text="Lançamentos"
@@ -732,6 +734,7 @@ function DashboardLayout({
 
         {/* 4.3. Rodapé do Menu (Configurações e Sair) */}
         <div className="p-2 border-t border-border space-y-1">
+          {/* Configurações é o único item além de sair que o Master vê sempre */}
           <SidebarLink
             text="Configurações"
             icon={<Settings size={18} />}
@@ -826,7 +829,6 @@ function DashboardLayout({
             <PaginaCarteirasVirtuais usuario={usuario} />
           )}
 
-          {/* LÓGICA DE PLACEHOLDER CORRIGIDA ABAIXO */}
           {activePage !== "Dashboard" &&
             activePage !== "Cooperados" &&
             activePage !== "Cartoes" &&
@@ -842,7 +844,7 @@ function DashboardLayout({
             activePage !== "ContaSalario" &&
             activePage !== "ServicosAdicionais" &&
             activePage !== "Lancamentos" &&
-            activePage !== "CarteirasVirtuais" && ( // <--- Faltava o && aqui
+            activePage !== "CarteirasVirtuais" && (
               <PaginaPlaceholder pageName={activePage} />
             )}
         </main>
