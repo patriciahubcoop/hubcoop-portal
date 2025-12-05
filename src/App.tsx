@@ -1,7 +1,10 @@
 import { supabase } from './supabase';
+import { supabase } from './supabase';
 // =======================================================================
 // 1. IMPORTS DE ÍCONES (COM TODAS AS CORREÇÕES E ADIÇÕES)
 // =======================================================================
+import React, { useState, useEffect } from "react";
+
 import React, { useState, useEffect } from "react";
 
 import {
@@ -124,15 +127,19 @@ type User = {
 // 2. Nosso "Banco de Dados" de usuários para simular o login
 const mockUsuariosLogin: Record<string, User> = {
   // --- MASTER ---
+  // --- MASTER ---
   hubcoop: {
     id: "user1",
     nome: "Admin Hubcoop",
     email: "patricia.holanda@hubcoop.com.br",
     perfil: "Master",
     centralId: "c1",
+    centralId: "c1",
     cooperativaId: null,
     pontoAtendimentoId: null,
   },
+
+  // --- ECOSSISTEMA CREDISIS ---
 
   // --- ECOSSISTEMA CREDISIS ---
   credisis: {
@@ -140,6 +147,7 @@ const mockUsuariosLogin: Record<string, User> = {
     nome: "Patricia Holanda (Credisis)",
     email: "patricia.holanda@credisis.com.br",
     perfil: "Central",
+    centralId: "c2",
     centralId: "c2",
     cooperativaId: null,
     pontoAtendimentoId: null,
@@ -151,6 +159,7 @@ const mockUsuariosLogin: Record<string, User> = {
     perfil: "Cooperativa",
     centralId: "c2",
     cooperativaId: "coop_coopesa",
+    cooperativaId: "coop_coopesa",
     pontoAtendimentoId: null,
   },
   pa03: {
@@ -160,6 +169,36 @@ const mockUsuariosLogin: Record<string, User> = {
     perfil: "PA",
     centralId: "c2",
     cooperativaId: "coop_coopesa",
+    pontoAtendimentoId: "pa_03",
+  },
+
+  // --- ECOSSISTEMA UNIPRIME (NOVOS) ---
+  uniprime: {
+    id: "user5",
+    nome: "Gestor Uniprime Central",
+    email: "admin@uniprime.com.br",
+    perfil: "Central",
+    centralId: "c3",
+    cooperativaId: null,
+    pontoAtendimentoId: null,
+  },
+  pioneira: {
+    id: "user6",
+    nome: "Gestor Uniprime Pioneira",
+    email: "gerente@pioneira.com.br",
+    perfil: "Cooperativa",
+    centralId: "c3",
+    cooperativaId: "coop_uni_pioneira",
+    pontoAtendimentoId: null,
+  },
+  pa_pioneira: {
+    id: "user7",
+    nome: "Atendente PA Toledo",
+    email: "atendente@pioneira.com.br",
+    perfil: "PA",
+    centralId: "c3",
+    cooperativaId: "coop_uni_pioneira",
+    pontoAtendimentoId: "pa_uni_01",
     pontoAtendimentoId: "pa_03",
   },
 
@@ -234,6 +273,8 @@ const mockCentrais: Central[] = [
   },
 ];
 
+];
+
 
 // =======================================================================
 // 2. Componente Principal do Aplicativo (Refatorado)
@@ -243,6 +284,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(
     null,
   );
+const [cooperativasReais, setCooperativasReais] = useState<any[]>([]);
+    const [loadingCooperativas, setLoadingCooperativas] = useState<boolean>(false);
 const [cooperativasReais, setCooperativasReais] = useState<any[]>([]);
     const [loadingCooperativas, setLoadingCooperativas] = useState<boolean>(false);
 
@@ -272,9 +315,15 @@ const [cooperativasReais, setCooperativasReais] = useState<any[]>([]);
   cooperativas={cooperativasReais}
 />
 
+  onLogout={handleLogout}
+  usuario={currentUser}
+  cooperativas={cooperativasReais}
+/>
+
   );
 }
 // =======================================================================
+// 3. A Tela de Login (Refatorada com Navegação entre Centrais)
 // 3. A Tela de Login (Refatorada com Navegação entre Centrais)
 // =======================================================================
 function LoginPage({
@@ -287,9 +336,21 @@ function LoginPage({
   // Estado para controlar qual menu está visível: 'home', 'credisis', 'uniprime'
   const [view, setView] = useState<'home' | 'credisis' | 'uniprime'>('home');
 
+  // Estado para controlar qual menu está visível: 'home', 'credisis', 'uniprime'
+  const [view, setView] = useState<'home' | 'credisis' | 'uniprime'>('home');
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
+    <div className="flex items-center justify-center min-h-screen bg-background">
       <div className="w-full max-w-md p-10 space-y-6 bg-card shadow-2xl rounded-2xl border border-border">
+        
+        {/* Cabeçalho Dinâmico */}
+        <div className="flex flex-col items-center justify-center">
+          <h1 className="text-5xl font-bold text-foreground mb-2">Hubcoop</h1>
+          
+          {view === 'home' && <span className="text-sm text-gray-500">Selecione o ecossistema</span>}
+          {view === 'credisis' && <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold uppercase tracking-widest">Credisis</span>}
+          {view === 'uniprime' && <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-widest">Uniprime</span>}
         
         {/* Cabeçalho Dinâmico */}
         <div className="flex flex-col items-center justify-center">
@@ -405,23 +466,137 @@ function LoginPage({
           </div>
         )}
 
+
+        <div className="w-1/4 mx-auto bg-primary h-[3px]"></div>
+
+        {/* --- VIEW: HOME (MASTER + SELEÇÃO) --- */}
+        {view === 'home' && (
+          <div className="space-y-4 pt-4 animate-fade-in">
+            {/* 1. Master Sempre Visível */}
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.hubcoop)}
+              perfil="Master (Hubcoop)"
+              email={simulatedUsers.hubcoop.email}
+              variant="master"
+            />
+            
+            <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-gray-200"></div>
+                <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">Simular Central</span>
+                <div className="flex-grow border-t border-gray-200"></div>
+            </div>
+
+            {/* 2. Botão Pasta Credisis */}
+            <button
+              onClick={() => setView('credisis')}
+              className="w-full px-4 py-4 flex justify-between items-center bg-white border-2 border-gray-100 hover:border-green-500 hover:bg-green-50 rounded-xl transition-all duration-200 group"
+            >
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold mr-4 group-hover:scale-110 transition-transform">
+                  C
+                </div>
+                <div className="text-left">
+                  <span className="block font-bold text-gray-800">Ecossistema Credisis</span>
+                  <span className="text-xs text-gray-500">Central, Coopesa, PAs</span>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-green-600" />
+            </button>
+
+            {/* 3. Botão Pasta Uniprime */}
+            <button
+              onClick={() => setView('uniprime')}
+              className="w-full px-4 py-4 flex justify-between items-center bg-white border-2 border-gray-100 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-all duration-200 group"
+            >
+              <div className="flex items-center">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold mr-4 group-hover:scale-110 transition-transform">
+                  U
+                </div>
+                <div className="text-left">
+                  <span className="block font-bold text-gray-800">Ecossistema Uniprime</span>
+                  <span className="text-xs text-gray-500">Central, Pioneira, PAs</span>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-600" />
+            </button>
+          </div>
+        )}
+
+        {/* --- VIEW: CREDISIS --- */}
+        {view === 'credisis' && (
+          <div className="space-y-4 pt-2 animate-fade-in">
+            <button onClick={() => setView('home')} className="text-xs text-gray-500 hover:text-gray-900 flex items-center mb-4">
+               <ChevronLeft className="w-4 h-4 mr-1"/> Voltar para seleção
+            </button>
+
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.credisis)}
+              perfil="Central (Credisis)"
+              email={simulatedUsers.credisis.email}
+            />
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.coopesa)}
+              perfil="Cooperativa (Coopesa)"
+              email={simulatedUsers.coopesa.email}
+            />
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.pa03)}
+              perfil="Ponto de Atendimento (PA 03)"
+              email={simulatedUsers.pa03.email}
+            />
+          </div>
+        )}
+
+        {/* --- VIEW: UNIPRIME --- */}
+        {view === 'uniprime' && (
+          <div className="space-y-4 pt-2 animate-fade-in">
+            <button onClick={() => setView('home')} className="text-xs text-gray-500 hover:text-gray-900 flex items-center mb-4">
+               <ChevronLeft className="w-4 h-4 mr-1"/> Voltar para seleção
+            </button>
+
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.uniprime)}
+              perfil="Central (Uniprime)"
+              email={simulatedUsers.uniprime.email}
+            />
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.pioneira)}
+              perfil="Cooperativa (Pioneira)"
+              email={simulatedUsers.pioneira.email}
+            />
+            <LoginButton
+              onClick={() => onLogin(simulatedUsers.pa_pioneira)}
+              perfil="Ponto de Atendimento (Toledo)"
+              email={simulatedUsers.pa_pioneira.email}
+            />
+          </div>
+        )}
+
       </div>
     </div>
   );
 }
 
 // Componente auxiliar atualizado para aceitar variante
+// Componente auxiliar atualizado para aceitar variante
 function LoginButton({
   onClick,
   perfil,
   email,
+  variant = "default"
   variant = "default"
 }: {
   onClick: () => void;
   perfil: string;
   email: string;
   variant?: "default" | "master";
+  variant?: "default" | "master";
 }) {
+  const baseClasses = "w-full px-4 py-3 text-left rounded-lg shadow-md transition-all duration-300 transform hover:scale-105";
+  const colorClasses = variant === "master" 
+    ? "bg-gray-800 text-white hover:bg-gray-900 ring-2 ring-gray-800 ring-offset-2" 
+    : "bg-primary text-primary-foreground hover:bg-accent";
+
   const baseClasses = "w-full px-4 py-3 text-left rounded-lg shadow-md transition-all duration-300 transform hover:scale-105";
   const colorClasses = variant === "master" 
     ? "bg-gray-800 text-white hover:bg-gray-900 ring-2 ring-gray-800 ring-offset-2" 
@@ -431,6 +606,7 @@ function LoginButton({
     <button
       type="button"
       onClick={onClick}
+      className={`${baseClasses} ${colorClasses}`}
       className={`${baseClasses} ${colorClasses}`}
     >
       <span className="font-semibold text-lg">{perfil}</span>
@@ -446,9 +622,11 @@ function DashboardLayout({
   onLogout,
   usuario,
   cooperativas,
+  cooperativas,
 }: {
   onLogout: () => void;
   usuario: User;
+  cooperativas: any[]; // ou tipagem Cooperativa[]
   cooperativas: any[]; // ou tipagem Cooperativa[]
 }) {
   const [activePage, setActivePage] = useState(
@@ -632,6 +810,7 @@ function DashboardLayout({
         <main className="flex-1 p-6 overflow-y-auto bg-gray-100">
           {activePage === "Dashboard" && (
             <PaginaDashboard usuario={usuario} cooperativas={cooperativas} />
+            <PaginaDashboard usuario={usuario} cooperativas={cooperativas} />
           )}
           {activePage === "Cooperados" && (
             <PaginaCooperados usuario={usuario} />
@@ -751,12 +930,45 @@ function PaginaPlaceholder({ pageName }: { pageName: string }) {
 }
 // =======================================================================
 // 7. A PÁGINA DE DASHBOARD (VISÃO ESTRATÉGICA + VISÃO OPERACIONAL - DADOS REAIS)
+// 7. A PÁGINA DE DASHBOARD (VISÃO ESTRATÉGICA + VISÃO OPERACIONAL - DADOS REAIS)
 // =======================================================================
 
 function PaginaDashboard({ usuario }: { usuario: User }) {
   // --- Estados de Filtro e UI ---
+  // --- Estados de Filtro e UI ---
   const [coopSelecionada, setCoopSelecionada] = useState<string>("");
   const [paSelecionado, setPaSelecionado] = useState<string>("");
+  const [tab, setTab] = useState<"estrategica" | "operacional">("estrategica");
+  const [loading, setLoading] = useState(true);
+
+  // --- Estados para os Dropdowns (Filtros) ---
+  const [listaCoops, setListaCoops] = useState<any[]>([]);
+  const [listaPAs, setListaPAs] = useState<any[]>([]);
+
+  // --- Estados de Dados (Inicializados com 0 ou arrays vazios para não quebrar o layout) ---
+  // Estratégica - Linha 1
+  const [kpiTransacoesHoje, setKpiTransacoesHoje] = useState(0);
+  const [kpiTotalCartoes, setKpiTotalCartoes] = useState(0);
+  const [limiteUtilizado, setLimiteUtilizado] = useState(0);
+  const [limiteDisponivel, setLimiteDisponivel] = useState(0);
+  const [ticketMedio, setTicketMedio] = useState("R$ 0,00");
+  const [transacoesSeries, setTransacoesSeries] = useState<any[]>([]); // Gráfico pequeno
+
+  // Estratégica - Linha 2
+  const [volumeModalidadeData, setVolumeModalidadeData] = useState<any[]>([]);
+  const [faturasData, setFaturasData] = useState<any[]>([]);
+  const [aderenciaPct, setAderenciaPct] = useState(0);
+  const [ativacaoPct, setAtivacaoPct] = useState(0);
+
+  // Estratégica - Linha 3
+  const [cartoesEmitidos, setCartoesEmitidos] = useState(0);
+  const [cartoesCancelados, setCartoesCancelados] = useState(0);
+  const [emissoesPorProduto, setEmissoesPorProduto] = useState<any[]>([]);
+
+  // Estratégica - Linha 4
+  const [inadimplenciaData, setInadimplenciaData] = useState<any[]>([]);
+  const [tendenciaAtraso, setTendenciaAtraso] = useState(0);
+  const [chargebacks, setChargebacks] = useState(0);
   const [tab, setTab] = useState<"estrategica" | "operacional">("estrategica");
   const [loading, setLoading] = useState(true);
 
@@ -973,6 +1185,190 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
   const fmtBRL = (v: number) => "R$ " + Math.round(v).toLocaleString("pt-BR");
 
   if(loading) return <div className="p-8 text-center text-gray-500">Carregando Dashboard...</div>;
+  // Estratégica - Linha 5 (Microcharts - Dados derivados)
+  const [oportunidadesSeries, setOportunidadesSeries] = useState<any[]>([]);
+  const [propensaoSeries, setPropensaoSeries] = useState<any[]>([]);
+  const [quedaSeries, setQuedaSeries] = useState<any[]>([]);
+  const [kpiOportunidades, setKpiOportunidades] = useState(0);
+  const [kpiPropensao, setKpiPropensao] = useState(0);
+  const [kpiQueda, setKpiQueda] = useState(0);
+
+  // Operacional - Linha 1
+  const [solicitacoesRecentes, setSolicitacoesRecentes] = useState(0);
+  const [ativosVsInativos, setAtivosVsInativos] = useState<any[]>([]);
+  const [bloqueadosVsDesbloqueados, setBloqueadosVsDesbloqueados] = useState<any[]>([]);
+
+  // Operacional - Linha 2
+  const [emissoesBIN, setEmissoesBIN] = useState(0);
+  const [entregasPendentes, setEntregasPendentes] = useState(0);
+  const [walletsData, setWalletsData] = useState<any[]>([]);
+
+  // Operacional - Linha 3
+  const [valorServicos, setValorServicos] = useState(0);
+  const [usoSalaVIP, setUsoSalaVIP] = useState(0);
+  const [contestacoes, setContestacoes] = useState(0);
+
+  // --- Efeitos ---
+  useEffect(() => {
+    fetchFiltros();
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [coopSelecionada, paSelecionado, usuario]);
+
+  // --- Buscas ---
+  async function fetchFiltros() {
+    const { data: coops } = await supabase.from('cooperativas').select('*');
+    const { data: pas } = await supabase.from('pontos_atendimento').select('*');
+    setListaCoops(coops || []);
+    setListaPAs(pas || []);
+  }
+
+  async function fetchDashboardData() {
+    setLoading(true);
+    try {
+      // 1. Monta Query Base
+      let matchQuery: any = {};
+      if (usuario.perfil === 'Central') matchQuery.central_id = usuario.centralId;
+      if (usuario.perfil === 'Cooperativa') matchQuery.cooperativa_id = usuario.cooperativaId;
+      if (usuario.perfil === 'PA') matchQuery.ponto_atendimento_id = usuario.pontoAtendimentoId;
+      
+      if (coopSelecionada) matchQuery.cooperativa_id = coopSelecionada;
+      if (paSelecionado) matchQuery.ponto_atendimento_id = paSelecionado;
+
+      // 2. Busca Transações
+      const { data: transacoes } = await supabase.from('transacoes').select('*').match(matchQuery);
+      const txData = transacoes || [];
+      const hoje = new Date().toISOString().split('T')[0];
+      const txHoje = txData.filter((t: any) => t.created_at.startsWith(hoje));
+
+      setKpiTransacoesHoje(txHoje.length);
+
+      const totalVol = txData.reduce((acc: number, t: any) => acc + Number(t.valor), 0);
+      const avgTicket = txData.length ? totalVol / txData.length : 0;
+      setTicketMedio(avgTicket.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+
+      // Series Transações (Simulado agrupamento por dia da semana baseado nos dados reais)
+      // Em produção: usar função SQL date_trunc
+      const mockSeries = [
+        { dia: "Seg", valor: totalVol * 0.1 }, { dia: "Ter", valor: totalVol * 0.15 },
+        { dia: "Qua", valor: totalVol * 0.12 }, { dia: "Qui", valor: totalVol * 0.18 },
+        { dia: "Sex", valor: totalVol * 0.25 }, { dia: "Sáb", valor: totalVol * 0.15 },
+        { dia: "Dom", valor: totalVol * 0.05 },
+      ];
+      setTransacoesSeries(mockSeries);
+
+      // Volume Modalidade
+      const debito = txData.filter((t: any) => t.funcao === 'Debito').reduce((acc: number, t: any) => acc + Number(t.valor), 0);
+      const credito = txData.filter((t: any) => t.funcao === 'Credito').reduce((acc: number, t: any) => acc + Number(t.valor), 0);
+      setVolumeModalidadeData([
+        { name: "Débito", value: debito },
+        { name: "Crédito", value: credito },
+        { name: "Parcelado", value: credito * 0.4 }, // Estimativa se não houver campo parcelado
+      ]);
+
+      // 3. Busca Cartões
+      const { data: cartoes } = await supabase.from('cartoes').select('*').match(matchQuery);
+      const cards = cartoes || [];
+      const totalCards = cards.length;
+      setKpiTotalCartoes(totalCards);
+
+      const limTotal = cards.reduce((acc: number, c: any) => acc + Number(c.limite), 0);
+      const limDisp = cards.reduce((acc: number, c: any) => acc + Number(c.disponivel), 0);
+      const limUsed = limTotal - limDisp;
+
+      setLimiteUtilizado(limUsed);
+      setLimiteDisponivel(limDisp);
+
+      // Status Cartões
+      const ativos = cards.filter((c: any) => c.status === 'ativo').length;
+      const inativos = totalCards - ativos;
+      setAderenciaPct(totalCards > 0 ? Math.round((ativos / totalCards) * 100) : 0);
+      setAtivacaoPct(92); // Hardcoded ou calcular basedo em 'created_at' recente
+
+      setAtivosVsInativos([
+        { name: "Ativos", value: ativos },
+        { name: "Inativos", value: inativos }
+      ]);
+
+      const bloq = cards.filter((c: any) => c.status.includes('bloqueado')).length;
+      setBloqueadosVsDesbloqueados([
+        { name: "Bloq", v: bloq },
+        { name: "Desb", v: totalCards - bloq }
+      ]);
+
+      // Emissões por Produto (Agrupamento simples)
+      const produtos = ["Infinite", "Platinum", "Gold", "Classic"];
+      const emissoesProd = produtos.map(p => ({
+         name: `Visa ${p}`,
+         value: cards.filter((c: any) => c.tipo_produto?.includes(p) || (p === "Classic" && !c.tipo_produto)).length
+      }));
+      setEmissoesPorProduto(emissoesProd);
+      setCartoesEmitidos(totalCards); // Total histórico
+      setCartoesCancelados(cards.filter((c: any) => c.status === 'cancelado').length);
+
+      // 4. Busca Faturas
+      const { data: faturas } = await supabase.from('faturas').select('*').match(matchQuery);
+      const fats = faturas || [];
+      const pagas = fats.filter((f: any) => f.status === 'paga').length;
+      const abertas = fats.filter((f: any) => f.status === 'aberta').length;
+      const atrasadas = fats.filter((f: any) => f.status === 'vencida').length;
+
+      setFaturasData([
+        { name: "Pagas", value: pagas },
+        { name: "Abertas", value: abertas },
+        { name: "Atrasadas", value: atrasadas },
+      ]);
+
+      // Inadimplência Calculada
+      const inadData = [
+         { cat: "INFINITE", pf: atrasadas * 10, pj: atrasadas * 5 },
+         { cat: "PLATINUM", pf: atrasadas * 8, pj: atrasadas * 6 },
+         { cat: "GOLD", pf: atrasadas * 4, pj: atrasadas * 3 },
+         { cat: "CLASSIC", pf: atrasadas * 12, pj: atrasadas * 8 },
+         { cat: "EMPRESARIAL", pf: atrasadas * 5, pj: atrasadas * 15 },
+      ];
+      setInadimplenciaData(inadData);
+      setTendenciaAtraso(16); // Dado analítico
+      setChargebacks(totalVol * 0.005); // Estimatita 0.5%
+
+      // 5. Dados Operacionais Extras (Simulados baseados no volume real)
+      setSolicitacoesRecentes(Math.floor(totalCards * 0.05));
+      setEmissoesBIN(totalCards);
+      setEntregasPendentes(Math.floor(totalCards * 0.02));
+      
+      setWalletsData([
+         { name: "Apple Pay", uso: Math.floor(totalCards * 0.2) },
+         { name: "Google Pay", uso: Math.floor(totalCards * 0.3) },
+         { name: "Samsung Pay", uso: Math.floor(totalCards * 0.05) },
+      ]);
+
+      setValorServicos(totalCards * 5.90); // R$ 5,90 ticket medio servico
+      setUsoSalaVIP(Math.floor(totalCards * 0.01));
+      setContestacoes(Math.floor(totalCards * 0.005));
+
+      // 6. Dados Estratégicos Analíticos (Microcharts)
+      setKpiOportunidades(Math.floor(totalCards * 1.5));
+      setOportunidadesSeries([{x:1,y:10}, {x:2,y:40}, {x:3,y:25}, {x:4,y:60}]);
+      
+      setKpiPropensao(Math.floor(totalCards * 0.1));
+      setPropensaoSeries([{x:1,y:20}, {x:2,y:10}, {x:3,y:15}, {x:4,y:8}]);
+
+      setKpiQueda(Math.floor(totalCards * 0.02));
+      setQuedaSeries([{x:1,y:30}, {x:2,y:15}, {x:3,y:10}, {x:4,y:5}]);
+
+    } catch (error) {
+      console.error("Erro dashboard", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Helper formatação
+  const fmtBRL = (v: number) => "R$ " + Math.round(v).toLocaleString("pt-BR");
+
+  if(loading) return <div className="p-8 text-center text-gray-500">Carregando Dashboard...</div>;
 
   return (
     <div className="space-y-6 pb-10">
@@ -1002,6 +1398,7 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
         </div>
 
         {/* Filtros Reais */}
+        {/* Filtros Reais */}
         <div className="flex items-center gap-3">
           {usuario.perfil === "Central" && (
             <select
@@ -1013,6 +1410,8 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
               }}
             >
               <option value="">Todas as Cooperativas</option>
+              {listaCoops
+                .filter((c) => c.central_id === usuario.centralId)
               {listaCoops
                 .filter((c) => c.central_id === usuario.centralId)
                 .map((c) => (
@@ -1030,6 +1429,13 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             disabled={usuario.perfil === "Central" && !coopSelecionada}
           >
             <option value="">Todos os PAs</option>
+            {listaPAs
+              .filter((pa) => {
+                  // Lógica de filtro hierárquico
+                  if (usuario.perfil === 'Cooperativa') return pa.cooperativa_id === usuario.cooperativaId;
+                  if (coopSelecionada) return pa.cooperativa_id === coopSelecionada;
+                  return true;
+              })
             {listaPAs
               .filter((pa) => {
                   // Lógica de filtro hierárquico
@@ -1073,6 +1479,11 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col justify-between">
               <div className="text-sm text-gray-500 font-bold uppercase">Limite de Crédito</div>
               <div className="mt-4">
+                <div className="text-3xl font-extrabold text-gray-900">
+                    {limiteUtilizado + limiteDisponivel > 0 
+                        ? Math.round((limiteUtilizado / (limiteUtilizado + limiteDisponivel)) * 100) 
+                        : 0}%
+                </div>
                 <div className="text-3xl font-extrabold text-gray-900">
                     {limiteUtilizado + limiteDisponivel > 0 
                         ? Math.round((limiteUtilizado / (limiteUtilizado + limiteDisponivel)) * 100) 
@@ -1226,6 +1637,16 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
                     </div>
                     </>
                   )}
+                  {faturasData.length > 0 && (
+                    <>
+                    <div className="text-2xl font-extrabold text-gray-900">{Math.floor(faturasData[0].value).toLocaleString()}</div>
+                    <div className="text-xs text-gray-400 uppercase">Pagas</div>
+                    <div className="mt-3 text-sm text-gray-700">
+                        <div className="flex justify-between"><span>Abertas</span><span>{Math.floor(faturasData[1].value).toLocaleString()}</span></div>
+                        <div className="flex justify-between mt-1"><span>Atrasadas</span><span>{Math.floor(faturasData[2].value).toLocaleString()}</span></div>
+                    </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -1272,11 +1693,13 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Cartões emitidos</div>
               <div className="text-4xl font-extrabold text-gray-900 mt-4">{cartoesEmitidos.toLocaleString()}</div>
+              <div className="text-4xl font-extrabold text-gray-900 mt-4">{cartoesEmitidos.toLocaleString()}</div>
               <div className="text-xs text-red-500 font-bold mt-2 uppercase">▼ 3% vs último mês</div>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Cancelamentos</div>
+              <div className="text-4xl font-extrabold text-gray-900 mt-4">{cartoesCancelados.toLocaleString()}</div>
               <div className="text-4xl font-extrabold text-gray-900 mt-4">{cartoesCancelados.toLocaleString()}</div>
               <div className="text-xs text-green-600 font-bold mt-2 uppercase">▼ 1% vs último mês</div>
             </div>
@@ -1284,6 +1707,9 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Emissões por produto</div>
               <div className="mt-4 text-sm space-y-2">
+                {emissoesPorProduto.map((prod, idx) => (
+                    <div key={idx} className="flex justify-between"><span>{prod.name}</span><span className="font-bold">{prod.value.toLocaleString()}</span></div>
+                ))}
                 {emissoesPorProduto.map((prod, idx) => (
                     <div key={idx} className="flex justify-between"><span>{prod.name}</span><span className="font-bold">{prod.value.toLocaleString()}</span></div>
                 ))}
@@ -1313,11 +1739,13 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="text-sm text-gray-500 font-bold uppercase">Tendência de atraso</div>
                 <div className="text-4xl font-extrabold text-gray-900 mt-4">{tendenciaAtraso}%</div>
+                <div className="text-4xl font-extrabold text-gray-900 mt-4">{tendenciaAtraso}%</div>
                 <div className="text-xs text-green-600 font-bold mt-2 uppercase">▼ 1% vs último mês</div>
               </div>
 
               <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="text-sm text-gray-500 font-bold uppercase">Chargebacks</div>
+                <div className="text-3xl font-extrabold text-gray-900 mt-4">{fmtBRL(chargebacks)}</div>
                 <div className="text-3xl font-extrabold text-gray-900 mt-4">{fmtBRL(chargebacks)}</div>
                 <div className="text-xs text-green-600 font-bold mt-2 uppercase">▼ 3% vs último mês</div>
               </div>
@@ -1328,6 +1756,7 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Oportunidades</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiOportunidades.toLocaleString()}</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiOportunidades.toLocaleString()}</div>
               <div style={{ height: 60, marginTop: 8 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -1341,6 +1770,7 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Propensão a Upgrade</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiPropensao.toLocaleString()}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiPropensao.toLocaleString()}</div>
               <div style={{ height: 60, marginTop: 8 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsArea data={propensaoSeries}>
@@ -1352,6 +1782,7 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Queda de uso</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiQueda.toLocaleString()}</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiQueda.toLocaleString()}</div>
               <div style={{ height: 60, marginTop: 8 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -1371,6 +1802,7 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Solicitações recentes de cartões</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{solicitacoesRecentes.toLocaleString()}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{solicitacoesRecentes.toLocaleString()}</div>
               <div style={{ height: 60, marginTop: 8 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsArea data={[{ d: 1, v: 10 }, { d: 2, v: 20 }, { d: 3, v: 15 }]}>
@@ -1384,9 +1816,11 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
               <div className="text-sm text-gray-500 font-bold uppercase">Cartões ativos x inativos</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{kpiTotalCartoes.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-1">Ativos: {ativosVsInativos[0]?.value} • Inativos: {ativosVsInativos[1]?.value}</div>
+              <div className="text-xs text-gray-400 mt-1">Ativos: {ativosVsInativos[0]?.value} • Inativos: {ativosVsInativos[1]?.value}</div>
               <div style={{ marginTop: 10, height: 60 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsPie>
+                    <Pie data={ativosVsInativos} innerRadius={18} outerRadius={28} dataKey="value">
                     <Pie data={ativosVsInativos} innerRadius={18} outerRadius={28} dataKey="value">
                       <Cell fill="#111827" />
                       <Cell fill="#E5E7EB" />
@@ -1399,8 +1833,10 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Cartões bloqueados/desbloqueados</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{bloqueadosVsDesbloqueados[0]?.v}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{bloqueadosVsDesbloqueados[0]?.v}</div>
               <div style={{ marginTop: 10, height: 60 }}>
                 <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBar data={bloqueadosVsDesbloqueados}>
                   <RechartsBar data={bloqueadosVsDesbloqueados}>
                     <Bar dataKey="v" fill="#111827" />
                   </RechartsBar>
@@ -1414,11 +1850,13 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Emissões por BIN</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{emissoesBIN.toLocaleString()}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{emissoesBIN.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-1">Controla volume de cartões produzidos</div>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Entregas pendentes</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{entregasPendentes.toLocaleString()}</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{entregasPendentes.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-1">Mostra cartões ainda não recebidos</div>
             </div>
@@ -1426,11 +1864,13 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Carteiras cadastradas</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{walletsData.reduce((acc, w) => acc + w.uso, 0)}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{walletsData.reduce((acc, w) => acc + w.uso, 0)}</div>
               <div style={{ marginTop: 10, height: 80 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsBar layout="vertical" data={walletsData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                     <XAxis type="number" stroke="#9CA3AF" />
+                    <YAxis dataKey="name" type="category" stroke="#9CA3AF" width={80} style={{fontSize: '10px'}} />
                     <YAxis dataKey="name" type="category" stroke="#9CA3AF" width={80} style={{fontSize: '10px'}} />
                     <Tooltip />
                     <Bar dataKey="uso" fill="#111827" />
@@ -1445,17 +1885,20 @@ function PaginaDashboard({ usuario }: { usuario: User }) {
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Serviços Adicionais (SMS / Seguro)</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{fmtBRL(valorServicos)}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{fmtBRL(valorServicos)}</div>
               <div className="text-xs text-gray-400 mt-1">Receita / adesões</div>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Uso de Benefícios - Sala VIP</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{usoSalaVIP.toLocaleString()}</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{usoSalaVIP.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-1">Volume de utilização</div>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
               <div className="text-sm text-gray-500 font-bold uppercase">Contestações</div>
+              <div className="text-3xl font-extrabold text-gray-900 mt-4">{contestacoes.toLocaleString()}</div>
               <div className="text-3xl font-extrabold text-gray-900 mt-4">{contestacoes.toLocaleString()}</div>
               <div className="text-xs text-gray-400 mt-1">Registros abertos</div>
             </div>
@@ -1655,7 +2098,127 @@ function PaginaCooperados({ usuario }: { usuario: any }) {
       if (usuario.perfil === "Central") return coop.centralId === usuario.centralId;
       if (usuario.perfil === "Cooperativa") return coop.cooperativaId === usuario.cooperativaId;
       if (usuario.perfil === "PA") return coop.pontoAtendimentoPrincipalId === usuario.pontoAtendimentoId;
+// =======================================================================
+// PÁGINA DE COOPERADOS (CORRIGIDA E BLINDADA)
+// =======================================================================
+
+// Nota: Usamos 'any' no prop 'usuario' para evitar o conflito com o ícone 'User'
+function PaginaCooperados({ usuario }: { usuario: any }) {
+  const [viewMode, setViewMode] = useState<"list" | "detail">("list");
+  const [selectedCooperado, setSelectedCooperado] = useState<CooperadoDetalhado | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [cooperadosReais, setCooperadosReais] = useState<CooperadoDetalhado[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCooperadosCompletos();
+  }, [usuario]);
+
+  async function fetchCooperadosCompletos() {
+  setLoading(true);
+  try {
+    // 1) busca todos os cooperados
+    const { data: cooperados, error: coopErr } = await supabase
+      .from('cooperados')
+      .select('*');
+
+    if (coopErr) throw coopErr;
+    if (!cooperados) {
+      setCooperadosReais([]);
+      return;
+    }
+
+    // 2) busca todos os cartões relacionados em 1 única query (mais eficiente)
+    const coopIds = cooperados.map((c: any) => c.id);
+    const { data: allCartoes, error: cartErr } = await supabase
+      .from('cartoes')
+      .select('*')
+      .in('cooperado_id', coopIds);
+
+    if (cartErr) throw cartErr;
+
+    // 3) agrupa cartões por cooperado_id
+    const cartoesByCoop: Record<string, any[]> = {};
+    (allCartoes || []).forEach((card: any) => {
+      const key = String(card.cooperado_id);
+      if (!cartoesByCoop[key]) cartoesByCoop[key] = [];
+      cartoesByCoop[key].push(card);
+    });
+
+    // 4) mescla os cartões no objeto de cada cooperado
+    const cooperadosComCartoes = cooperados.map((c: any) => ({
+      ...c,
+      cartoes: cartoesByCoop[String(c.id)] || []
+    }));
+
+    // 5) formata para a estrutura CooperadoDetalhado (mantendo sua lógica atual)
+    const formatados: CooperadoDetalhado[] = cooperadosComCartoes.map((item: any) => ({
+      id: item.id,
+      nome: item.nome || "Sem Nome",
+      cpf: item.cpf || "",
+      email: item.email || "",
+      telefone: item.telefone || "",
+      cnpj: undefined,
+      socios: [],
+
+      gerente: {
+        nome: "Gerente da Conta",
+        usuarioSistema: "gerente.pa"
+      },
+      enderecoEntrega: {
+        logradouro: "Endereço não informado",
+        numero: "S/N",
+        bairro: "-",
+        cidade: "-",
+        uf: "-",
+        cep: "00000-000"
+      },
+
+      centralId: item.central_id,
+      cooperativaId: item.cooperativa_id,
+      pontoAtendimentoPrincipalId: String(item.ponto_atendimento_id || "Não Vinculado"),
+
+      contasCorrentes: item.contas_correntes ? item.contas_correntes.map((cc: any) => ({
+        id: cc.id,
+        banco: cc.banco || "Sicoob",
+        agencia: cc.agencia,
+        numero: cc.numero,
+        dataAbertura: cc.created_at ? new Date(cc.created_at).toLocaleDateString('pt-BR') : '-',
+        status: cc.status,
+        paVinculado: String(cc.ponto_atendimento_id || ""),
+        documentoVinculado: item.cpf
+      })) : [],
+
+      // aqui usamos os cartões que juntamos acima
+      contasCartoes: (item.cartoes ? item.cartoes : []).map((card: any) => ({
+        id: card.id,
+        numeroMascarado: card.numero_mascarado,
+        funcao: card.funcao,
+        status: card.status === 'ativo' ? 'Ativa' : 'Bloqueada',
+        paVinculado: String(card.ponto_atendimento_id || ""),
+        tipo: "Titular",
+        nomeImpresso: card.nome_impresso
+      }))
+    }));
+
+    // 6) atualiza o state (a tabela irá renderizar)
+    setCooperadosReais(formatados);
+
+  } catch (error) {
+    console.error("Erro ao buscar cooperados:", error);
+  } finally {
+    setLoading(false);
+  }
+}
+
+  // Filtros de segurança
+  const cooperadosVisiveis = cooperadosReais.filter((coop) => {
+      if (usuario.perfil === "Master") return true; 
+      if (usuario.perfil === "Central") return coop.centralId === usuario.centralId;
+      if (usuario.perfil === "Cooperativa") return coop.cooperativaId === usuario.cooperativaId;
+      if (usuario.perfil === "PA") return coop.pontoAtendimentoPrincipalId === usuario.pontoAtendimentoId;
       return false;
+  });
   });
 
   const filteredCooperados = cooperadosVisiveis.filter(
@@ -1663,8 +2226,17 @@ function PaginaCooperados({ usuario }: { usuario: any }) {
       c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.cpf.includes(searchTerm) ||
       c.email.toLowerCase().includes(searchTerm),
+      c.email.toLowerCase().includes(searchTerm),
   );
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-hub-teal"></div>
+        <p className="mt-4 text-gray-500">Carregando carteira de cooperados...</p>
+      </div>
+    );
+  }
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-96">
@@ -1679,24 +2251,31 @@ function PaginaCooperados({ usuario }: { usuario: any }) {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold text-gray-800">
           {viewMode === "list" ? "Gestão de Cooperados" : `Detalhe: ${selectedCooperado?.nome}`}
+          {viewMode === "list" ? "Gestão de Cooperados" : `Detalhe: ${selectedCooperado?.nome}`}
         </h2>
         {viewMode === "detail" && (
           <button
             onClick={() => { setViewMode("list"); setSelectedCooperado(null); }}
+            onClick={() => { setViewMode("list"); setSelectedCooperado(null); }}
             className="flex items-center px-4 py-2 text-sm font-medium text-gray-600 bg-white rounded-lg shadow-sm hover:bg-gray-50"
           >
+            <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
             <ChevronLeft className="w-4 h-4 mr-1" /> Voltar
           </button>
         )}
       </div>
 
       {viewMode === "list" ? (
+      {viewMode === "list" ? (
         <ListaCooperados
           cooperados={filteredCooperados}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           onSelect={(c) => { setSelectedCooperado(c); setViewMode("detail"); }}
+          onSelect={(c) => { setSelectedCooperado(c); setViewMode("detail"); }}
         />
+      ) : (
+        selectedCooperado && <DetalheCooperado cooperado={selectedCooperado} />
       ) : (
         selectedCooperado && <DetalheCooperado cooperado={selectedCooperado} />
       )}
@@ -1718,6 +2297,8 @@ function ListaCooperados({
   const getFuncaoBadge = (cards: CartaoResumo[]) => {
     const principal = cards && cards.length > 0 ? cards[0] : null;
     if (!principal) return <span className="text-xs text-gray-400">Sem Cartão</span>;
+    const principal = cards && cards.length > 0 ? cards[0] : null;
+    if (!principal) return <span className="text-xs text-gray-400">Sem Cartão</span>;
     return (
       <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-xs border border-blue-100">
         {principal.funcao}
@@ -1726,6 +2307,11 @@ function ListaCooperados({
   };
 
   const getTipoBadge = (cards: CartaoResumo[]) => {
+    const tipo = (cards && cards.length > 0) ? cards[0].tipo : "Titular";
+    const color = tipo === "Kids" ? "bg-pink-100 text-pink-800" : 
+                  tipo === "Adicional" ? "bg-purple-100 text-purple-800" : 
+                  "bg-gray-100 text-gray-800";
+    return <span className={`px-2 py-0.5 rounded text-xs font-semibold ${color}`}>{tipo}</span>;
     const tipo = (cards && cards.length > 0) ? cards[0].tipo : "Titular";
     const color = tipo === "Kids" ? "bg-pink-100 text-pink-800" : 
                   tipo === "Adicional" ? "bg-purple-100 text-purple-800" : 
@@ -1740,12 +2326,14 @@ function ListaCooperados({
           <input
             type="text"
             placeholder="Buscar por nome, CPF..."
+            placeholder="Buscar por nome, CPF..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-hub-teal"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         </div>
+        <button className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-sm hover:bg-accent">
         <button className="flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-sm hover:bg-accent">
           <Plus className="w-5 h-5 mr-2" /> Novo Cooperado
         </button>
@@ -1761,6 +2349,12 @@ function ListaCooperados({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PA</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cooperado</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Documentos</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Função</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">PA</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -1769,15 +2363,22 @@ function ListaCooperados({
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{coop.nome}</div>
                   <div className="text-xs text-gray-500">{coop.email}</div>
+                  <div className="text-sm font-medium text-gray-900">{coop.nome}</div>
+                  <div className="text-xs text-gray-500">{coop.email}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-gray-900">{coop.cpf}</div>
                   <div className="text-sm text-gray-900">{coop.cpf}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">{getTipoBadge(coop.contasCartoes)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{getFuncaoBadge(coop.contasCartoes)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{getTipoBadge(coop.contasCartoes)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{getFuncaoBadge(coop.contasCartoes)}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {/* CORREÇÃO CRÍTICA: Converte para String antes de formatar */}
+                  {/* CORREÇÃO CRÍTICA: Converte para String antes de formatar */}
                   <div className="text-xs font-mono bg-gray-100 inline px-1 rounded">
+                    {String(coop.pontoAtendimentoPrincipalId).toUpperCase().replace("_", " ")}
                     {String(coop.pontoAtendimentoPrincipalId).toUpperCase().replace("_", " ")}
                   </div>
                 </td>
@@ -1794,12 +2395,16 @@ function ListaCooperados({
             {cooperados.length === 0 && (
                 <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum cooperado encontrado.</td></tr>
             )}
+            {cooperados.length === 0 && (
+                <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum cooperado encontrado.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
+
 
 function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
   const [showModalBloqueio, setShowModalBloqueio] = useState(false);
@@ -1808,14 +2413,23 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
     <div className="space-y-6 animate-fade-in">
       {/* Header Detalhe */}
       <div className="p-6 bg-white rounded-xl shadow-lg border-l-4 border-hub-teal flex justify-between items-center">
+      {/* Header Detalhe */}
+      <div className="p-6 bg-white rounded-xl shadow-lg border-l-4 border-hub-teal flex justify-between items-center">
         <div>
           <h3 className="text-2xl font-bold text-gray-800">{cooperado.nome}</h3>
           <div className="flex items-center space-x-3 mt-1 text-sm text-gray-500">
             <span>ID: {cooperado.id}</span>
             <span>•</span>
             <span className="flex items-center"><UserCheck className="w-4 h-4 mr-1"/> {cooperado.gerente?.nome}</span>
+            <span className="flex items-center"><UserCheck className="w-4 h-4 mr-1"/> {cooperado.gerente?.nome}</span>
           </div>
         </div>
+        <button 
+          onClick={() => setShowModalBloqueio(true)}
+          className="flex items-center px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition"
+        >
+          <ShieldAlert className="w-5 h-5 mr-2"/> Bloqueios
+        </button>
         <button 
           onClick={() => setShowModalBloqueio(true)}
           className="flex items-center px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 transition"
@@ -1832,7 +2446,34 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
           <p className="text-sm"><span className="text-gray-500 block">Email</span> {cooperado.email}</p>
           <p className="text-sm"><span className="text-gray-500 block">Telefone</span> {cooperado.telefone}</p>
         </div>
+        {/* Dados Pessoais */}
+        <div className="bg-white p-6 rounded-xl shadow-lg space-y-3">
+          <h4 className="font-semibold text-gray-800 border-b pb-2">Dados Cadastrais</h4>
+          <p className="text-sm"><span className="text-gray-500 block">CPF</span> {cooperado.cpf}</p>
+          <p className="text-sm"><span className="text-gray-500 block">Email</span> {cooperado.email}</p>
+          <p className="text-sm"><span className="text-gray-500 block">Telefone</span> {cooperado.telefone}</p>
+        </div>
 
+        {/* Cartões e Contas */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+          <h4 className="font-semibold text-gray-800 border-b pb-2 mb-4">Produtos Vinculados</h4>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr><th>Produto</th><th>Detalhe</th><th>Status</th></tr>
+              </thead>
+              <tbody className="divide-y">
+                {cooperado.contasCartoes.map((card, idx) => (
+                  <tr key={idx}>
+                    <td className="py-2 px-2 font-medium">{card.nomeImpresso}</td>
+                    <td className="py-2 px-2 text-gray-500">{card.numeroMascarado} ({card.funcao})</td>
+                    <td className="py-2 px-2"><span className="bg-green-100 text-green-800 px-2 py-0.5 rounded text-xs">{card.status}</span></td>
+                  </tr>
+                ))}
+                {cooperado.contasCartoes.length === 0 && <tr><td colSpan={3} className="p-2 text-center text-gray-400">Sem cartões</td></tr>}
+              </tbody>
+            </table>
+          </div>
         {/* Cartões e Contas */}
         <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
           <h4 className="font-semibold text-gray-800 border-b pb-2 mb-4">Produtos Vinculados</h4>
@@ -1862,6 +2503,7 @@ function DetalheCooperado({ cooperado }: { cooperado: CooperadoDetalhado }) {
     </div>
   );
 }
+
 
 
 function ModalBloqueioCooperado({ cooperado, onClose }: { cooperado: CooperadoDetalhado; onClose: () => void }) {
@@ -5014,6 +5656,7 @@ function ViewAlterarVencimento() {
 }
 // =======================================================================
 // 13. A PÁGINA DE RELATÓRIOS (CONECTADA AO SUPABASE)
+// 13. A PÁGINA DE RELATÓRIOS (CONECTADA AO SUPABASE)
 // =======================================================================
 
 // --- Tipos e Mocks ---
@@ -5037,6 +5680,7 @@ type HistoricoRelatorio = {
 };
 
 // Dados para a Tabela de Histórico (Pode ser substituído por tabela 'historico_relatorios' no futuro)
+// Dados para a Tabela de Histórico (Pode ser substituído por tabela 'historico_relatorios' no futuro)
 const mockHistoricoRelatorios: HistoricoRelatorio[] = [
   { id: 1, tipo: 'Limites Gerencial', periodo: '30/09/2025 - 31/10/2025', cooperativa: 'Central Hubcoop', formato: 'XLS', dataGeracao: '13/11/2025 13:00', registros: 300, status: 'erro' },
   { id: 2, tipo: 'Faturas Pagas', periodo: '30/09/2025 - 31/10/2025', cooperativa: 'Cooperativa Nordeste', formato: 'CSV', dataGeracao: '13/11/2025 13:00', registros: 250, status: 'concluido' },
@@ -5054,8 +5698,19 @@ const mockTiposDeRelatorios: RelatorioTipo[] = [
   { id: 'bins', titulo: 'Relatório de Bins', desc: 'Cartões emitidos vs disponibilizados', gerados: 0, icon: CreditCardIcon },
   { id: 'limites_gerencial', titulo: 'Limites Gerencial', desc: 'Limites de crédito totais', gerados: 1, icon: BarChart2 },
   { id: 'cadoc', titulo: 'CADOC 3040 - Coobrigações', desc: 'Relatório para Banco Central', gerados: 0, icon: Building },
+  { id: 'carteiras_virtuais', titulo: 'Carteiras Virtuais Ativas', desc: 'Portadores com token ativo em wallets', gerados: 3, icon: Smartphone },
+  { id: 'anuidade', titulo: 'Relatório de Anuidades', desc: 'Cobranças, parcelas e status de anuidade', gerados: 12, icon: Percent },
+  { id: 'sala_vip', titulo: 'Uso de Sala VIP', desc: 'Acessos, custos extras e salas utilizadas', gerados: 5, icon: Armchair },
+  { id: 'servicos_adicionais', titulo: 'Serviços Adicionais', desc: 'PPR, Notificações e outros serviços contratados', gerados: 8, icon: ShieldAlert },
+  { id: 'atraso', titulo: 'Cartões em Atraso', desc: 'Cooperados com faturas vencidas', gerados: 1, icon: CalendarX },
+  { id: 'faturas', titulo: 'Faturas Pagas', desc: 'Relação de faturas liquidadas', gerados: 1, icon: FileCheck },
+  { id: 'transacoes', titulo: 'Transações', desc: 'Débito e Crédito detalhado', gerados: 1, icon: List },
+  { id: 'bins', titulo: 'Relatório de Bins', desc: 'Cartões emitidos vs disponibilizados', gerados: 0, icon: CreditCardIcon },
+  { id: 'limites_gerencial', titulo: 'Limites Gerencial', desc: 'Limites de crédito totais', gerados: 1, icon: BarChart2 },
+  { id: 'cadoc', titulo: 'CADOC 3040 - Coobrigações', desc: 'Relatório para Banco Central', gerados: 0, icon: Building },
 ];
 
+// --- MOCKS DE DADOS DETALHADOS (Mantidos apenas para visualização da tabela interna por enquanto) ---
 // --- MOCKS DE DADOS DETALHADOS (Mantidos apenas para visualização da tabela interna por enquanto) ---
 const mockDadosAnuidade = [
   { id: 1, cpfCnpj: '123.456.789-00', nome: 'Ana Beatriz Silva', idCartao: '900103', cartaoMascarado: '4111 11** **** 1111', valorMensal: 45.90, dataCobranca: '10/11/2025', parcContratadas: 12, parcRestantes: 4 },
@@ -5093,6 +5748,26 @@ function PaginaRelatorios({ usuario }: { usuario: User }) {
     }
     fetchData();
   }, []);
+  const [cooperativas, setCooperativas] = useState<any[]>([]);
+  const [pontosAtendimento, setPontosAtendimento] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Busca dados reais do Supabase para os filtros
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const { data: coops } = await supabase.from('cooperativas').select('*');
+        const { data: pas } = await supabase.from('pontos_atendimento').select('*');
+        setCooperativas(coops || []);
+        setPontosAtendimento(pas || []);
+      } catch (error) {
+        console.error("Erro ao carregar filtros de relatórios:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
   // Se um relatório estiver ativo, mostra a visualização detalhada
   if (relatorioAtivo) {
@@ -5105,6 +5780,7 @@ function PaginaRelatorios({ usuario }: { usuario: User }) {
   }
 
   // Caso contrário, mostra o dashboard de relatórios
+  // Caso contrário, mostra o dashboard de relatórios
   return (
     <div className="space-y-6">
       {/* KPIs */}
@@ -5115,6 +5791,14 @@ function PaginaRelatorios({ usuario }: { usuario: User }) {
         <KpiCard title="Com Erro" value="1" change="" changeType="info" icon={PackageX} />
       </div>
 
+      {/* Tabela de Histórico com Filtros Reais */}
+      <ViewHistoricoRelatorios 
+        historico={mockHistoricoRelatorios} 
+        usuario={usuario}
+        listaCooperativas={cooperativas}
+        listaPAs={pontosAtendimento}
+        loading={loading}
+      />
       {/* Tabela de Histórico com Filtros Reais */}
       <ViewHistoricoRelatorios 
         historico={mockHistoricoRelatorios} 
@@ -5146,6 +5830,7 @@ function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => 
         <div className="flex space-x-3">
           <button onClick={onBack} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Voltar</button>
           {/* CORREÇÃO AQUI: Removido style={{ backgroundColor: HUB_BRAND_COLOR }} */}
+          {/* CORREÇÃO AQUI: Removido style={{ backgroundColor: HUB_BRAND_COLOR }} */}
           <button className="px-4 py-2 bg-hub-teal text-white rounded-lg hover:opacity-90 flex items-center">
             <FileDown className="w-4 h-4 mr-2"/> Exportar Excel
           </button>
@@ -5153,8 +5838,12 @@ function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => 
       </div>
 
       {/* Conteúdo das Tabelas Detalhadas */}
+      {/* Conteúdo das Tabelas Detalhadas */}
       <div className="p-6 overflow-x-auto">
         {tipo === 'anuidade' && (
+          <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'ID Cartão', 'Cartão', 'Valor', 'Data', 'Parc. Tot', 'Parc. Rest']} 
+            rows={mockDadosAnuidade.map(i => [i.cpfCnpj, i.nome, i.idCartao, i.cartaoMascarado, i.valorMensal, i.dataCobranca, i.parcContratadas, i.parcRestantes])} 
+          />
           <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'ID Cartão', 'Cartão', 'Valor', 'Data', 'Parc. Tot', 'Parc. Rest']} 
             rows={mockDadosAnuidade.map(i => [i.cpfCnpj, i.nome, i.idCartao, i.cartaoMascarado, i.valorMensal, i.dataCobranca, i.parcContratadas, i.parcRestantes])} 
           />
@@ -5163,8 +5852,14 @@ function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => 
           <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'Produto', 'Coop/PA', 'Data Uso', 'Sala', 'Custo Extra']} 
             rows={mockDadosSalaVIP.map(i => [i.cpfCnpj, i.nome, i.produto, `${i.cooperativa}/${i.pa}`, i.dataUso, i.sala, i.custoExtra])} 
           />
+          <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'Produto', 'Coop/PA', 'Data Uso', 'Sala', 'Custo Extra']} 
+            rows={mockDadosSalaVIP.map(i => [i.cpfCnpj, i.nome, i.produto, `${i.cooperativa}/${i.pa}`, i.dataUso, i.sala, i.custoExtra])} 
+          />
         )}
         {tipo === 'servicos_adicionais' && (
+          <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'Produto', 'Valor', 'Data', 'Coop/PA', 'Situação']} 
+            rows={mockDadosServicos.map(i => [i.cpfCnpj, i.nome, i.produto, i.valor, i.dataContratacao, `${i.cooperativa}/${i.pa}`, i.status])} 
+          />
           <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'Produto', 'Valor', 'Data', 'Coop/PA', 'Situação']} 
             rows={mockDadosServicos.map(i => [i.cpfCnpj, i.nome, i.produto, i.valor, i.dataContratacao, `${i.cooperativa}/${i.pa}`, i.status])} 
           />
@@ -5173,10 +5868,15 @@ function ViewRelatorioDetalhado({ tipo, onBack }: { tipo: string; onBack: () => 
           <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'Cartão', 'Wallet', 'Ativação', 'Último Uso', 'Status']} 
             rows={mockDadosCarteirasVirtuais.map(i => [i.cpfCnpj, i.nome, i.cartaoMascarado, i.wallet, i.dataAtivacao, i.ultimoUso, i.status])} 
           />
+          <TabelaGenerica headers={['CPF/CNPJ', 'Nome', 'Cartão', 'Wallet', 'Ativação', 'Último Uso', 'Status']} 
+            rows={mockDadosCarteirasVirtuais.map(i => [i.cpfCnpj, i.nome, i.cartaoMascarado, i.wallet, i.dataAtivacao, i.ultimoUso, i.status])} 
+          />
         )}
+        
         
         {!['anuidade', 'sala_vip', 'servicos_adicionais', 'carteiras_virtuais'].includes(tipo) && (
           <div className="text-center py-10 text-gray-500">
+            <p>Visualização detalhada ainda não implementada para este tipo de relatório.</p>
             <p>Visualização detalhada ainda não implementada para este tipo de relatório.</p>
           </div>
         )}
@@ -5218,14 +5918,56 @@ function ViewHistoricoRelatorios({ historico, usuario, listaCooperativas, listaP
     if (status === 'concluido') return 'bg-green-100 text-green-800';
     if (status === 'processando') return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
+// Helper para tabelas simples
+function TabelaGenerica({ headers, rows }: { headers: string[], rows: any[][] }) {
+  return (
+    <table className="w-full text-sm text-left">
+      <thead className="bg-gray-100 text-gray-600 uppercase font-bold">
+        <tr>{headers.map(h => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
+      </thead>
+      <tbody className="divide-y">
+        {rows.map((row, idx) => (
+          <tr key={idx} className="hover:bg-gray-50">
+            {row.map((cell, cIdx) => <td key={cIdx} className="px-4 py-3">{cell}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+// --- Tabela Principal com Filtros Reais ---
+function ViewHistoricoRelatorios({ historico, usuario, listaCooperativas, listaPAs, loading }: { 
+  historico: HistoricoRelatorio[]; 
+  usuario: User;
+  listaCooperativas: any[];
+  listaPAs: any[];
+  loading: boolean;
+}) {
+  // Estados locais para os filtros
+  const [filtroCoop, setFiltroCoop] = useState("");
+  const [filtroPA, setFiltroPA] = useState("");
+
+  const getStatusClass = (status: string) => {
+    if (status === 'concluido') return 'bg-green-100 text-green-800';
+    if (status === 'processando') return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
   };
 
   const getFormatoClass = (formato: string) => {
     if (formato === 'XLS') return 'bg-green-700 text-white';
     if (formato === 'PDF') return 'bg-red-700 text-white';
     return 'bg-blue-700 text-white';
+  const getFormatoClass = (formato: string) => {
+    if (formato === 'XLS') return 'bg-green-700 text-white';
+    if (formato === 'PDF') return 'bg-red-700 text-white';
+    return 'bg-blue-700 text-white';
   };
 
+  // Filtrar PAs baseado na Cooperativa selecionada (se houver)
+  const pasFiltrados = filtroCoop 
+    ? listaPAs.filter(pa => pa.cooperativa_id === filtroCoop)
+    : listaPAs;
   // Filtrar PAs baseado na Cooperativa selecionada (se houver)
   const pasFiltrados = filtroCoop 
     ? listaPAs.filter(pa => pa.cooperativa_id === filtroCoop)
@@ -5241,10 +5983,13 @@ function ViewHistoricoRelatorios({ historico, usuario, listaCooperativas, listaP
           </div>
           {/* CORREÇÃO AQUI: Adicionado bg-hub-teal e removido style com erro */}
           <button className="flex-shrink-0 flex items-center px-4 py-2 bg-hub-teal text-white rounded-lg shadow-sm transition-colors hover:opacity-90">
+          {/* CORREÇÃO AQUI: Adicionado bg-hub-teal e removido style com erro */}
+          <button className="flex-shrink-0 flex items-center px-4 py-2 bg-hub-teal text-white rounded-lg shadow-sm transition-colors hover:opacity-90">
             <Plus className="w-5 h-5 mr-2" /> Novo Relatório
           </button>
         </div>
 
+        {/* --- FILTROS CONECTADOS AO SUPABASE --- */}
         {/* --- FILTROS CONECTADOS AO SUPABASE --- */}
         <div className="pt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           
@@ -5257,7 +6002,17 @@ function ViewHistoricoRelatorios({ historico, usuario, listaCooperativas, listaP
               onChange={(e) => { setFiltroCoop(e.target.value); setFiltroPA(""); }}
               disabled={loading}
             >
+            <select 
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
+              value={filtroCoop}
+              onChange={(e) => { setFiltroCoop(e.target.value); setFiltroPA(""); }}
+              disabled={loading}
+            >
               <option value="">Todas</option>
+              {listaCooperativas
+                .filter(c => usuario.perfil === 'Central' ? c.central_id === usuario.centralId : true)
+                .map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
               {listaCooperativas
                 .filter(c => usuario.perfil === 'Central' ? c.central_id === usuario.centralId : true)
                 .map(c => (
@@ -5275,7 +6030,14 @@ function ViewHistoricoRelatorios({ historico, usuario, listaCooperativas, listaP
               onChange={(e) => setFiltroPA(e.target.value)}
               disabled={loading || (usuario.perfil === 'Central' && !filtroCoop)}
             >
+            <select 
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
+              value={filtroPA}
+              onChange={(e) => setFiltroPA(e.target.value)}
+              disabled={loading || (usuario.perfil === 'Central' && !filtroCoop)}
+            >
               <option value="">Todos</option>
+              {pasFiltrados.map(pa => (
               {pasFiltrados.map(pa => (
                 <option key={pa.id} value={pa.id}>{pa.nome}</option>
               ))}
@@ -5380,7 +6142,10 @@ function ViewGerarRelatorios({ tipos, onGerar }: { tipos: RelatorioTipo[], onGer
 }
 
 
+
+
 // =======================================================================
+// 14. A PÁGINA DE COOPERATIVAS (CONECTADA AO SUPABASE)
 // 14. A PÁGINA DE COOPERATIVAS (CONECTADA AO SUPABASE)
 // =======================================================================
 type CooperativasViewMode = "lista" | "detalhe";
@@ -5390,9 +6155,38 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
   const [viewMode, setViewMode] = useState<CooperativasViewMode>("lista");
   const [selectedCooperativa, setSelectedCooperativa] = useState<Cooperativa | null>(null);
   const [showModalNovaCoop, setShowModalNovaCoop] = useState(false);
+  // --- ESTADOS DE UI ---
+  const [viewMode, setViewMode] = useState<CooperativasViewMode>("lista");
+  const [selectedCooperativa, setSelectedCooperativa] = useState<Cooperativa | null>(null);
+  const [showModalNovaCoop, setShowModalNovaCoop] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAlert, setShowAlert] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
 
+  // --- ESTADOS DE DADOS (do Supabase) ---
+  const [cooperativasReais, setCooperativasReais] = useState<Cooperativa[]>([]);
+  const [centraisReais, setCentraisReais] = useState<Central[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // --- CARREGA DADOS INICIAIS ---
+  useEffect(() => {
+    fetchCentrais();
+    fetchCooperativas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function fetchCentrais() {
+    try {
+      const { data, error } = await supabase.from("centrais").select("*");
+      if (error) throw error;
+      if (data) {
+        const mapped: Central[] = data.map((c: any) => ({
+          id: c.id,
+          nome: c.nome,
+          admin: c.admin || c.admin_email || "",
+          logo: c.logo || c.logo_url || "",
+        }));
+        setCentraisReais(mapped);
   // --- ESTADOS DE DADOS (do Supabase) ---
   const [cooperativasReais, setCooperativasReais] = useState<Cooperativa[]>([]);
   const [centraisReais, setCentraisReais] = useState<Central[]>([]);
@@ -5458,7 +6252,51 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
     if (usuario.perfil === "PA") return coop.id === usuario.cooperativaId; // PA geralmente ligado a uma cooperativa
     return false;
   });
+    } catch (err) {
+      console.error("Erro ao buscar centrais:", err);
+    }
+  }
 
+  async function fetchCooperativas() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.from("cooperativas").select("*");
+      if (error) throw error;
+      if (data) {
+        const formatadas: Cooperativa[] = data.map((item: any) => ({
+          id: item.id,
+          centralId: item.central_id,
+          codigo: item.codigo,
+          nome: item.nome,
+          cnpj: item.cnpj,
+          tipo: item.tipo as "Central" | "Singular",
+          limiteOutorgado: Number(item.limite_outorgado || 0),
+          limiteUtilizado: Number(item.limite_utilizado || 0),
+          status: (item.status as "Ativa" | "Inativa") || "Ativa",
+        }));
+        setCooperativasReais(formatadas);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar cooperativas:", error);
+      alert("Erro ao carregar cooperativas. Veja o console para mais detalhes.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // --- SEGREGAÇÃO / FILTROS (igual lógica original, agora sobre dados reais) ---
+  const cooperativasVisiveis = cooperativasReais.filter((coop) => {
+    if (usuario.perfil === "Master") return true;
+    if (usuario.perfil === "Central") return coop.centralId === usuario.centralId;
+    if (usuario.perfil === "Cooperativa") return coop.id === usuario.cooperativaId;
+    if (usuario.perfil === "PA") return coop.id === usuario.cooperativaId; // PA geralmente ligado a uma cooperativa
+    return false;
+  });
+
+  const cooperativasFiltradas = cooperativasVisiveis.filter((c) =>
+    c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (c.codigo || "").includes(searchTerm) ||
+    (c.cnpj || "").includes(searchTerm)
   const cooperativasFiltradas = cooperativasVisiveis.filter((c) =>
     c.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (c.codigo || "").includes(searchTerm) ||
@@ -5466,7 +6304,17 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
   );
 
   // --- KPIs simples agregados (exemplo) ---
+  // --- KPIs simples agregados (exemplo) ---
   const kpis = {
+    total: cooperativasVisiveis.length,
+    limiteOutorgado: cooperativasVisiveis.reduce((s, c) => s + (c.limiteOutorgado || 0), 0),
+    limiteUtilizado: cooperativasVisiveis.reduce((s, c) => s + (c.limiteUtilizado || 0), 0),
+    percUtilizacao:
+      cooperativasVisiveis.length > 0
+        ? Math.round((cooperativasVisiveis.reduce((s, c) => s + (c.limiteUtilizado || 0), 0) /
+            Math.max(1, cooperativasVisiveis.reduce((s, c) => s + (c.limiteOutorgado || 0), 0))) *
+            100)
+        : 0,
     total: cooperativasVisiveis.length,
     limiteOutorgado: cooperativasVisiveis.reduce((s, c) => s + (c.limiteOutorgado || 0), 0),
     limiteUtilizado: cooperativasVisiveis.reduce((s, c) => s + (c.limiteUtilizado || 0), 0),
@@ -5496,6 +6344,22 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
           >
             Nova Central / Cooperativa
           </button>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-gray-800">Cooperativas</h2>
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="Buscar cooperativa, código, CNPJ..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-3 py-2 border rounded"
+          />
+          <button
+            onClick={() => setShowModalNovaCoop(true)}
+            className="px-4 py-2 bg-primary text-white rounded shadow"
+          >
+            Nova Central / Cooperativa
+          </button>
         </div>
       </div>
 
@@ -5504,7 +6368,24 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
         <div className="bg-white p-4 rounded shadow">
           <div className="text-sm text-gray-500">Total de cooperativas</div>
           <div className="text-2xl font-bold">{kpis.total}</div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-sm text-gray-500">Total de cooperativas</div>
+          <div className="text-2xl font-bold">{kpis.total}</div>
         </div>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-sm text-gray-500">Limite Outorg.</div>
+          <div className="text-2xl font-bold">R$ {kpis.limiteOutorgado.toLocaleString()}</div>
+        </div>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-sm text-gray-500">Limite Utilizado</div>
+          <div className="text-2xl font-bold">R$ {kpis.limiteUtilizado.toLocaleString()}</div>
+        </div>
+        <div className="bg-white p-4 rounded shadow">
+          <div className="text-sm text-gray-500">%</div>
+          <div className="text-2xl font-bold">{kpis.percUtilizacao}%</div>
         <div className="bg-white p-4 rounded shadow">
           <div className="text-sm text-gray-500">Limite Outorg.</div>
           <div className="text-2xl font-bold">R$ {kpis.limiteOutorgado.toLocaleString()}</div>
@@ -5603,6 +6484,90 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
           </div>
         </div>
       )}
+      {/* Lista */}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="p-4 border-b">
+          <div className="text-sm text-gray-600">Listagem</div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="p-3 text-left">Nome</th>
+                <th className="p-3 text-left">CNPJ</th>
+                <th className="p-3 text-left">Código</th>
+                <th className="p-3 text-left">Tipo</th>
+                <th className="p-3 text-left">Status</th>
+                <th className="p-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cooperativasFiltradas.map((c) => (
+                <tr key={c.id} className="border-b hover:bg-gray-50">
+                  <td className="p-3">{c.nome}</td>
+                  <td className="p-3">{c.cnpj || "-"}</td>
+                  <td className="p-3">{c.codigo || "-"}</td>
+                  <td className="p-3">{c.tipo}</td>
+                  <td className="p-3">{c.status}</td>
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={() => {
+                        setSelectedCooperativa(c);
+                        setViewMode("detalhe");
+                      }}
+                      className="px-3 py-1 rounded border text-sm"
+                    >
+                      Ver
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {cooperativasFiltradas.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-500">
+                    {loading ? "Carregando..." : "Nenhuma cooperativa encontrada."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal de criação de Central / Cooperativa */}
+      {showModalNovaCoop && (
+        <ModalNovaCentral
+          onClose={() => setShowModalNovaCoop(false)}
+          onCreated={() => {
+            setShowModalNovaCoop(false);
+            fetchCentrais();
+            fetchCooperativas();
+          }}
+        />
+      )}
+
+      {/* Visual de detalhe (simples) */}
+      {viewMode === "detalhe" && selectedCooperativa && (
+        <div className="bg-white p-4 rounded shadow">
+          <div className="flex justify-between">
+            <div>
+              <h3 className="font-bold text-lg">{selectedCooperativa.nome}</h3>
+              <div className="text-sm text-gray-500">{selectedCooperativa.cnpj}</div>
+            </div>
+            <div>
+              <button
+                onClick={() => {
+                  setViewMode("lista");
+                  setSelectedCooperativa(null);
+                }}
+                className="px-3 py-1 border rounded"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -5610,13 +6575,86 @@ function PaginaCooperativas({ usuario }: { usuario: User }) {
 // =======================================================================
 // MODAL DE CRIAÇÃO DE NOVA CENTRAL (USANDO SUPABASE)
 // =======================================================================
+
+// =======================================================================
+// MODAL DE CRIAÇÃO DE NOVA CENTRAL (USANDO SUPABASE)
+// =======================================================================
 function ModalNovaCentral({
   onClose,
+  onCreated,
   onCreated,
 }: {
   onClose: () => void;
   onCreated?: () => void;
+  onCreated?: () => void;
 }) {
+  const [nome, setNome] = useState("");
+  const [admin, setAdmin] = useState("");
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files ? e.target.files[0] : null;
+    setLogoFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setLogoPreview(url);
+    } else {
+      setLogoPreview(null);
+    }
+  };
+
+  const uploadLogoAndGetUrl = async (file: File | null) => {
+    // opcional: se você usa Storage do Supabase, faça upload aqui e retorne URL
+    // por ora retornamos null para manter simples; se precisar, eu te mostro.
+    return null;
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    if (!nome.trim()) {
+      setErrorMsg("Informe o nome da central.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const logo_url = await uploadLogoAndGetUrl(logoFile);
+
+      const payload = {
+        id: undefined, // se sua tabela gerar id automaticamente, omita
+        nome: nome.trim(),
+        admin: admin.trim() || null,
+        logo: logo_url || logoPreview || null,
+        created_at: new Date().toISOString(),
+      };
+
+      // Insert
+      const { data, error } = await supabase.from("centrais").insert([payload]).select().single();
+
+      if (error) {
+        console.error("Erro ao cadastrar central:", error);
+        setErrorMsg(error.message || "Erro ao cadastrar central.");
+        return;
+      }
+
+      setSuccessMsg("Central criada com sucesso!");
+      // chama callback para recarregar listagens
+      if (onCreated) onCreated();
+    } catch (err: any) {
+      console.error("Erro inesperado ao criar central:", err);
+      setErrorMsg(err?.message || "Erro inesperado.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const [nome, setNome] = useState("");
   const [admin, setAdmin] = useState("");
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -5690,7 +6728,17 @@ function ModalNovaCentral({
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Cadastrar Nova Central</h3>
           <button type="button" onClick={onClose} className="text-gray-500">✕</button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Cadastrar Nova Central</h3>
+          <button type="button" onClick={onClose} className="text-gray-500">✕</button>
         </div>
+
+        {errorMsg && <div className="mb-3 text-sm text-red-600">{errorMsg}</div>}
+        {successMsg && <div className="mb-3 text-sm text-green-700">{successMsg}</div>}
+
+        <div className="space-y-3">
 
         {errorMsg && <div className="mb-3 text-sm text-red-600">{errorMsg}</div>}
         {successMsg && <div className="mb-3 text-sm text-green-700">{successMsg}</div>}
@@ -5698,7 +6746,12 @@ function ModalNovaCentral({
         <div className="space-y-3">
           <div>
             <label className="block text-sm text-gray-700">Nome</label>
+            <label className="block text-sm text-gray-700">Nome</label>
             <input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="w-full px-3 py-2 border rounded"
+              required
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               className="w-full px-3 py-2 border rounded"
@@ -5729,9 +6782,35 @@ function ModalNovaCentral({
           </div>
         </div>
       </form>
+
+          <div>
+            <label className="block text-sm text-gray-700">Email Admin</label>
+            <input
+              value={admin}
+              onChange={(e) => setAdmin(e.target.value)}
+              className="w-full px-3 py-2 border rounded"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-700">Logo (opcional)</label>
+            <input type="file" accept="image/*" onChange={handleLogoChange} className="w-full" />
+            {logoPreview && <img src={logoPreview} alt="preview" className="w-24 h-24 mt-2 object-contain" />}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded">Cancelar</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-primary text-white rounded">
+              {saving ? "Salvando..." : "Cadastrar Central"}
+            </button>
+          </div>
+        </div>
+      </form>
     </div>
   );
 }
+
+
 
 
 
@@ -6511,6 +7590,8 @@ function ListaEdicaoCooperativas({
 }) {
   const cooperativas = cooperativasReais.length ? cooperativasReais : cooperativas
 .filter(
+  const cooperativas = cooperativasReais.length ? cooperativasReais : cooperativas
+.filter(
     (c) =>
       c.centralId === usuario.centralId &&
       c.tipo === "Singular",
@@ -6573,6 +7654,8 @@ function FormCadastroPA({ usuario }: { usuario: User }) {
           >
             {cooperativasReais.length ? cooperativasReais : cooperativas
 
+            {cooperativasReais.length ? cooperativasReais : cooperativas
+
               .filter(
                 (c) =>
                   c.centralId === usuario.centralId &&
@@ -6601,6 +7684,8 @@ function ListaEdicaoPA({ usuario }: { usuario: User }) {
   const pas = mockPontosAtendimento.filter((pa) => {
     if (usuario.perfil === "Central") {
       // Pega os IDs das cooperativas da central
+      const coopIds = cooperativasReais.length ? cooperativasReais : mockCooperativas
+
       const coopIds = cooperativasReais.length ? cooperativasReais : mockCooperativas
 
         .filter((c) => c.centralId === usuario.centralId)
@@ -7438,6 +8523,7 @@ function ExportarDropdown() {
 
 // =======================================================================
 // 19. PÁGINA DE GESTÃO DE LIMITES (CORRIGIDA COM SUPABASE)
+// 19. PÁGINA DE GESTÃO DE LIMITES (CORRIGIDA COM SUPABASE)
 // =======================================================================
 
 // --- Tipos para Gestão de Limites ---
@@ -7446,10 +8532,13 @@ type RegraLimite = {
   origem: "Cooperativa" | "PA" | "Cooperado";
   gatilhoPorcentagem: number;
   aprovadorDestino: "Central" | "Cooperativa";
+  gatilhoPorcentagem: number;
+  aprovadorDestino: "Central" | "Cooperativa";
 };
 
 type SolicitacaoLimite = {
   id: number;
+  solicitante: string;
   solicitante: string;
   tipoSolicitante: "Cooperativa" | "PA" | "Cooperado";
   limiteAtual: number;
@@ -7459,7 +8548,11 @@ type SolicitacaoLimite = {
 };
 
 // --- Mocks para configurações (mantidos locais pois não temos tabela de regras ainda) ---
+// --- Mocks para configurações (mantidos locais pois não temos tabela de regras ainda) ---
 const mockRegrasLimite: RegraLimite[] = [
+  { id: 1, origem: "Cooperativa", gatilhoPorcentagem: 10, aprovadorDestino: "Central" },
+  { id: 2, origem: "PA", gatilhoPorcentagem: 15, aprovadorDestino: "Central" },
+  { id: 3, origem: "Cooperado", gatilhoPorcentagem: 20, aprovadorDestino: "Central" },
   { id: 1, origem: "Cooperativa", gatilhoPorcentagem: 10, aprovadorDestino: "Central" },
   { id: 2, origem: "PA", gatilhoPorcentagem: 15, aprovadorDestino: "Central" },
   { id: 3, origem: "Cooperado", gatilhoPorcentagem: 20, aprovadorDestino: "Central" },
@@ -7469,14 +8562,19 @@ const mockSolicitacoesLimite: SolicitacaoLimite[] = [
   { id: 1, solicitante: "Cooperativa Coopesa", tipoSolicitante: "Cooperativa", limiteAtual: 8000000, limiteSolicitado: 9500000, aumentoPorcentagem: 18.75, status: "Pendente" },
   { id: 2, solicitante: "PA 03 (Coopesa)", tipoSolicitante: "PA", limiteAtual: 500000, limiteSolicitado: 600000, aumentoPorcentagem: 20.0, status: "Pendente" },
   { id: 3, solicitante: "Maria Santos (Cooperado)", tipoSolicitante: "Cooperado", limiteAtual: 5000, limiteSolicitado: 8000, aumentoPorcentagem: 60.0, status: "Pendente" },
+  { id: 1, solicitante: "Cooperativa Coopesa", tipoSolicitante: "Cooperativa", limiteAtual: 8000000, limiteSolicitado: 9500000, aumentoPorcentagem: 18.75, status: "Pendente" },
+  { id: 2, solicitante: "PA 03 (Coopesa)", tipoSolicitante: "PA", limiteAtual: 500000, limiteSolicitado: 600000, aumentoPorcentagem: 20.0, status: "Pendente" },
+  { id: 3, solicitante: "Maria Santos (Cooperado)", tipoSolicitante: "Cooperado", limiteAtual: 5000, limiteSolicitado: 8000, aumentoPorcentagem: 60.0, status: "Pendente" },
 ];
 
 // --- Componente Principal ---
 function PaginaGestaoLimites({ usuario }: { usuario: User }) {
   const [activeTab, setActiveTab] = useState<"definir" | "autorizacoes" | "configuracoes">("definir");
+  const [activeTab, setActiveTab] = useState<"definir" | "autorizacoes" | "configuracoes">("definir");
 
   return (
     <div className="space-y-6">
+      {/* Menu Superior */}
       {/* Menu Superior */}
       <div className="flex space-x-2 border-b border-gray-200 overflow-x-auto pb-1">
         <SubMenuButton
@@ -7489,6 +8587,7 @@ function PaginaGestaoLimites({ usuario }: { usuario: User }) {
           active={activeTab === "autorizacoes"}
           onClick={() => setActiveTab("autorizacoes")}
         />
+        {(usuario.perfil === "Central" || usuario.perfil === "Master") && (
         {(usuario.perfil === "Central" || usuario.perfil === "Master") && (
           <SubMenuButton
             label="Configuração de Regras"
@@ -7503,14 +8602,106 @@ function PaginaGestaoLimites({ usuario }: { usuario: User }) {
         {activeTab === "definir" && <TabDefinirLimites usuario={usuario} />}
         {activeTab === "autorizacoes" && <TabAutorizacoesLimites usuario={usuario} />}
         {activeTab === "configuracoes" && <TabConfiguracaoRegras usuario={usuario} />}
+        {activeTab === "definir" && <TabDefinirLimites usuario={usuario} />}
+        {activeTab === "autorizacoes" && <TabAutorizacoesLimites usuario={usuario} />}
+        {activeTab === "configuracoes" && <TabConfiguracaoRegras usuario={usuario} />}
       </div>
     </div>
   );
 }
 
 // --- ABA 1: DEFINIR LIMITES (CORRIGIDA - BUSCA DO SUPABASE) ---
+// --- ABA 1: DEFINIR LIMITES (CORRIGIDA - BUSCA DO SUPABASE) ---
 function TabDefinirLimites({ usuario }: { usuario: User }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Busca os dados reais baseados no perfil
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      try {
+        let data: any[] = [];
+
+        if (usuario.perfil === "Central") {
+          // Central vê Cooperativas
+          const { data: coops } = await supabase
+            .from('cooperativas')
+            .select('*')
+            .eq('central_id', usuario.centralId);
+          
+          if (coops) {
+            data = coops.map((c: any) => ({
+              id: c.id,
+              nome: c.nome,
+              doc: c.cnpj,
+              limite: Number(c.limite_outorgado || 0)
+            }));
+          }
+
+        } else if (usuario.perfil === "Cooperativa") {
+          // Cooperativa vê PAs
+          const { data: pas } = await supabase
+            .from('pontos_atendimento')
+            .select('*')
+            .eq('cooperativa_id', usuario.cooperativaId);
+          
+          if (pas) {
+            data = pas.map((p: any) => ({
+              id: p.id,
+              nome: p.nome,
+              doc: p.codigo,
+              limite: 500000 // Mock: PA não tem coluna de limite no banco ainda
+            }));
+          }
+
+        } else if (usuario.perfil === "PA") {
+          // PA vê Cooperados
+          const { data: cooperados } = await supabase
+            .from('cooperados')
+            .select('*, cartoes(*)')
+            .eq('ponto_atendimento_id', usuario.pontoAtendimentoId);
+          
+          if (cooperados) {
+            data = cooperados.map((c: any) => {
+              // Soma limites dos cartões
+              const limiteTotal = c.cartoes?.reduce((acc: number, card: any) => acc + Number(card.limite), 0) || 0;
+              return {
+                id: c.id,
+                nome: c.nome,
+                doc: c.cpf,
+                limite: limiteTotal
+              };
+            });
+          }
+        }
+
+        setItems(data);
+      } catch (error) {
+        console.error("Erro ao buscar limites:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [usuario]);
+
+  // Filtragem local
+  const itemsFiltrados = items.filter(item => 
+    item.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (item.doc && item.doc.includes(searchTerm))
+  );
+
+  // --- RENDERIZAÇÃO ---
+
+  // 1. Visão MASTER
+  if (usuario.perfil === "Master") {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+        <h3 className="text-xl font-semibold text-gray-800">Visão Master</h3>
+        <p className="text-gray-500 mt-2">O usuário Master gerencia os limites globais das Centrais.</p>
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -7621,7 +8812,45 @@ function TabDefinirLimites({ usuario }: { usuario: User }) {
         />
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
       </div>
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        {usuario.perfil === "Central" ? "Limites das Cooperativas" : 
+         usuario.perfil === "Cooperativa" ? "Limites dos Pontos de Atendimento" : 
+         "Limites dos Cooperados"}
+      </h3>
+      
+      <div className="mb-6 max-w-md relative">
+        <input
+          type="text"
+          placeholder="Buscar..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-hub-teal"
+        />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      </div>
 
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-max">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Documento / Código</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Limite Atual</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ação</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {loading ? (
+               <tr><td colSpan={4} className="p-6 text-center text-gray-500">Carregando dados...</td></tr>
+            ) : itemsFiltrados.length === 0 ? (
+               <tr><td colSpan={4} className="p-6 text-center text-gray-500">Nenhum registro encontrado.</td></tr>
+            ) : (
+              itemsFiltrados.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-6 py-4 font-medium text-gray-900">{item.nome}</td>
+                  <td className="px-6 py-4 text-gray-500">{item.doc}</td>
       <div className="overflow-x-auto">
         <table className="w-full min-w-max">
           <thead className="bg-gray-50">
@@ -7644,13 +8873,23 @@ function TabDefinirLimites({ usuario }: { usuario: User }) {
                   <td className="px-6 py-4 text-gray-500">{item.doc}</td>
                   <td className="px-6 py-4 font-bold text-gray-800">
                     {item.limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {item.limite.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </td>
                   <td className="px-6 py-4">
                     <button className="text-hub-teal hover:text-hub-teal-dark font-medium text-sm flex items-center">
                       <Edit2 className="w-4 h-4 mr-1" /> Alterar Limite
+                      <Edit2 className="w-4 h-4 mr-1" /> Alterar Limite
                     </button>
                   </td>
                 </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
               ))
             )}
           </tbody>
@@ -7667,14 +8906,29 @@ function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
     if (usuario.perfil === "Cooperativa") return sol.tipoSolicitante !== "Cooperativa";
     return false;
   });
+// --- ABA 2: AUTORIZAÇÕES (Mantida com Mocks por enquanto, mas segura) ---
+function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
+  const solicitacoesVisiveis = mockSolicitacoesLimite.filter((sol) => {
+    if (usuario.perfil === "Central") return true; 
+    if (usuario.perfil === "Cooperativa") return sol.tipoSolicitante !== "Cooperativa";
+    return false;
+  });
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Autorizações de Aumento de Limite</h3>
       <h3 className="text-xl font-semibold text-gray-800 mb-4">Autorizações de Aumento de Limite</h3>
       <div className="overflow-x-auto">
         <table className="w-full min-w-max">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitante</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Nível</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Limite Atual</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitado</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">% Aumento</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Ação</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitante</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Nível</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Limite Atual</th>
@@ -7693,13 +8947,22 @@ function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
                 <td className="px-6 py-4 font-bold text-hub-teal">{sol.limiteSolicitado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                 <td className="px-6 py-4"><span className="text-red-600 font-bold">+{sol.aumentoPorcentagem.toFixed(2)}%</span></td>
                 <td className="px-6 py-4"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">{sol.status}</span></td>
+                <td className="px-6 py-4 font-medium text-gray-900">{sol.solicitante}</td>
+                <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold text-gray-600">{sol.tipoSolicitante}</span></td>
+                <td className="px-6 py-4 text-gray-500">{sol.limiteAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                <td className="px-6 py-4 font-bold text-hub-teal">{sol.limiteSolicitado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                <td className="px-6 py-4"><span className="text-red-600 font-bold">+{sol.aumentoPorcentagem.toFixed(2)}%</span></td>
+                <td className="px-6 py-4"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">{sol.status}</span></td>
                 <td className="px-6 py-4 space-x-2">
+                  <button className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">Aprovar</button>
+                  <button className="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">Rejeitar</button>
                   <button className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">Aprovar</button>
                   <button className="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">Rejeitar</button>
                 </td>
               </tr>
             ))}
             {solicitacoesVisiveis.length === 0 && (
+              <tr><td colSpan={7} className="p-6 text-center text-gray-500">Nenhuma solicitação pendente.</td></tr>
               <tr><td colSpan={7} className="p-6 text-center text-gray-500">Nenhuma solicitação pendente.</td></tr>
             )}
           </tbody>
@@ -7710,9 +8973,12 @@ function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
 }
 
 // --- ABA 3: CONFIGURAÇÃO DE REGRAS (Mantida) ---
+// --- ABA 3: CONFIGURAÇÃO DE REGRAS (Mantida) ---
 function TabConfiguracaoRegras({ usuario }: { usuario: User }) {
   const [regras, setRegras] = useState(mockRegrasLimite);
 
+  const handleUpdateRegra = (id: number, field: string, value: string | number) => {
+    setRegras(regras.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   const handleUpdateRegra = (id: number, field: string, value: string | number) => {
     setRegras(regras.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
   };
@@ -7720,11 +8986,14 @@ function TabConfiguracaoRegras({ usuario }: { usuario: User }) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <h3 className="text-xl font-semibold text-gray-800 mb-4">Configuração de Alçadas de Aprovação</h3>
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">Configuração de Alçadas de Aprovação</h3>
       <div className="grid gap-6">
         {regras.map((regra) => (
           <div key={regra.id} className="border border-gray-200 rounded-xl p-5 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+          <div key={regra.id} className="border border-gray-200 rounded-xl p-5 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
             <div className="mb-4 md:mb-0 md:w-1/3">
               <h4 className="font-bold text-gray-800 flex items-center">
+                <SlidersHorizontal className="w-4 h-4 mr-2 text-hub-teal" /> Solicitação de {regra.origem}
                 <SlidersHorizontal className="w-4 h-4 mr-2 text-hub-teal" /> Solicitação de {regra.origem}
               </h4>
             </div>
@@ -7738,13 +9007,25 @@ function TabConfiguracaoRegras({ usuario }: { usuario: User }) {
                   className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
                 />
               </div>
+                <label className="text-xs font-semibold text-gray-600 mb-1">Acima de (%):</label>
+                <input
+                  type="number"
+                  value={regra.gatilhoPorcentagem}
+                  onChange={(e) => handleUpdateRegra(regra.id, "gatilhoPorcentagem", parseFloat(e.target.value))}
+                  className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
+                />
+              </div>
               <div className="flex flex-col">
+                <label className="text-xs font-semibold text-gray-600 mb-1">Aprovador:</label>
                 <label className="text-xs font-semibold text-gray-600 mb-1">Aprovador:</label>
                 <select
                   value={regra.aprovadorDestino}
                   onChange={(e) => handleUpdateRegra(regra.id, "aprovadorDestino", e.target.value)}
                   className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
+                  onChange={(e) => handleUpdateRegra(regra.id, "aprovadorDestino", e.target.value)}
+                  className="w-40 px-3 py-2 border border-gray-300 rounded-lg focus:ring-hub-teal"
                 >
+                  <option value="Cooperativa">Cooperativa</option>
                   <option value="Cooperativa">Cooperativa</option>
                   <option value="Central">Central</option>
                 </select>
