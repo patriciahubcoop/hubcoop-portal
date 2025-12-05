@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { centraisService } from '@/services/centraisService';
+import { cooperativasService } from '@/services/cooperativasService';
+import { pontosAtendimentoService } from '@/services/pontosAtendimentoService';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
@@ -13,7 +15,7 @@ export default function PopularDados() {
     setResultado(null);
 
     try {
-      const central = await base44.entities.Central.create({
+      const central = await centraisService.create({
         codigo: '001',
         nome: 'Credisis',
         cnpj: '00.000.000/0001-00',
@@ -33,7 +35,7 @@ export default function PopularDados() {
 
       const cooperativasCriadas = [];
       for (let i = 0; i < cooperativas.length; i++) {
-        const coop = await base44.entities.Cooperativa.create({
+        const coop = await cooperativasService.create({
           codigo: String(i + 1).padStart(3, '0'),
           nome: cooperativas[i],
           cnpj: `00.000.000/00${String(i + 10).padStart(2, '0')}-${String(i).padStart(2, '0')}`,
@@ -53,7 +55,7 @@ export default function PopularDados() {
         cooperativasCriadas.push(coop);
 
         for (let j = 1; j <= 4; j++) {
-          await base44.entities.PontoAtendimento.create({
+          await pontosAtendimentoService.create({
             codigo: String(j).padStart(2, '0'),
             nome: `Ponto ${String(j).padStart(2, '0')} - ${cooperativas[i]}`,
             cooperativa_id: coop.id,
