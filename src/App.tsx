@@ -4511,9 +4511,10 @@ function ViewAlterarVencimento() {
 }
 
 // =======================================================================
-// 13. A PÁGINA DE RELATÓRIOS
+// 13. A PÁGINA DE RELATÓRIOS (CONECTADA AO SUPABASE)
 // =======================================================================
 
+// --- Tipos ---
 type RelatorioTipo = {
   id: string;
   titulo: string;
@@ -4526,123 +4527,396 @@ type HistoricoRelatorio = {
   id: number;
   tipo: string;
   periodo: string;
-  cooperativa: string;
+  cooperativa: string; // ou join com tabela cooperativas
   formato: 'XLS' | 'CSV' | 'PDF';
-  dataGeracao: string;
+  data_geracao: string; // Supabase usa snake_case por padrão
   registros: number;
   status: 'concluido' | 'processando' | 'erro';
 };
 
-const mockHistoricoRelatorios: HistoricoRelatorio[] = [
-  { id: 1, tipo: 'Limites Gerencial', periodo: '30/09/2025 - 31/10/2025', cooperativa: 'Central Hubcoop', formato: 'XLS', dataGeracao: '13/11/2025 13:00', registros: 300, status: 'erro' },
+// Lista de Tipos de Relatórios Disponíveis (Menu Fixo)
+const tiposDeRelatorios: RelatorioTipo[] = [
+  // --- Transacional e Operacional ---
+  { id: 'transacoes_credito', titulo: 'Transações na Função Crédito', desc: 'Detalhamento de compras aprovadas no crédito', gerados: 15, icon: CreditCard },
+  { id: 'transacoes_debito', titulo: 'Transações na Função Débito', desc: 'Detalhamento de compras aprovadas no débito', gerados: 12, icon: CreditCard },
+  { id: 'saques_credito', titulo: 'Relatório de Saques no Crédito', desc: 'Monitoramento de retiradas em espécie (Cash Advance)', gerados: 2, icon: Banknote },
+  { id: 'contestacoes', titulo: 'Relatório de Contestações', desc: 'Disputas, Chargebacks e fraudes em análise', gerados: 4, icon: ShieldAlert },
+  
+  // --- Produtos e Serviços ---
+  { id: 'carteiras_virtuais', titulo: 'Relatório de Cartões Virtuais', desc: 'Tokenização em carteiras digitais (Wallets)', gerados: 6, icon: Smartphone },
+  { id: 'anuidade', titulo: 'Relatório de Anuidades', desc: 'Receita de anuidades e isenções concedidas', gerados: 12, icon: Percent },
+  { id: 'sala_vip', titulo: 'Uso de Sala VIP', desc: 'Acessos LoungeKey/DragonPass e custos', gerados: 5, icon: Armchair },
+  { id: 'servicos_adicionais', titulo: 'Serviços Adicionais', desc: 'Adesão de seguros, SMS e outros serviços', gerados: 8, icon: FileCheck },
+
+  // --- Financeiro e Conciliação ---
+  { id: 'receitas', titulo: 'Relatório de Receitas', desc: 'Consolidado de receitas de intercâmbio e tarifas', gerados: 3, icon: TrendingUp },
+  { id: 'despesas', titulo: 'Relatório de Despesas', desc: 'Custos operacionais, bandeiras e processamento', gerados: 3, icon: TrendingDown },
+  { id: 'cext', titulo: 'CEXT - Conciliação de Extrato', desc: 'Arquivo de conciliação financeira diária', gerados: 30, icon: CheckSquare },
+  { id: 'daut', titulo: 'DAUT - Débito Automático', desc: 'Arquivo de remessa de débito em conta', gerados: 10, icon: RefreshCw },
+  { id: 'daur', titulo: 'DAUR - Débito Automático (Retorno)', desc: 'Processamento de retorno dos débitos', gerados: 10, icon: FileDown },
+
+  // --- Gestão de Limites e Risco ---
+  { id: 'limites_coop', titulo: 'Relatório de Limites Cooperativas', desc: 'Acompanhamento de teto operacional por singular', gerados: 1, icon: BarChart2 },
+  { id: 'cartoes_atraso', titulo: 'Cartões em Atraso (Aging)', desc: 'Carteira de crédito vencida por faixa de atraso', gerados: 4, icon: CalendarX },
+  
+  // --- Regulatórios ---
+  { id: 'cb117', titulo: 'Coobrigações (CB117)', desc: 'Relatório regulatório de garantias de cartão', gerados: 1, icon: Building },
+  { id: 'cadoc', titulo: 'CADOC 3040', desc: 'Informações de risco de crédito (SCR)', gerados: 1, icon: FileText },
+  { id: 'irpi', titulo: 'IRPI - Informe de Rendimentos', desc: 'Dados para declaração de imposto de renda', gerados: 0, icon: FileText },
 ];
 
-const mockTiposDeRelatorios: RelatorioTipo[] = [
-  { id: 'faturas', titulo: 'Faturas Pagas', desc: 'Relação de faturas liquidadas', gerados: 1, icon: FileCheck },
-];
-
+// --- Componente PAI da Página Relatórios ---
 function PaginaRelatorios({ usuario }: { usuario: User }) {
   const [relatorioAtivo, setRelatorioAtivo] = useState<string | null>(null);
-  const [cooperativas, setCooperativas] = useState<any[]>([]);
-  const [pontosAtendimento, setPontosAtendimento] = useState<any[]>([]);
+  const [historico, setHistorico] = useState<HistoricoRelatorio[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // 1. Busca o Histórico de Relatórios Gerados
+  useEffect(() => {
+    async function fetchHistorico() {
+      try {
+        setLoading(true);
+        // Filtra por cooperativa se não for Master/Central
+        let query = supabase.from('historico_relatorios').select('*').order('data_geracao', { ascending: false });
+        
+        if (usuario.perfil === 'Cooperativa') {
+           // Assumindo que a tabela tenha coluna 'cooperativa_id' ou nome
+           query = query.eq('cooperativa_id', usuario.cooperativaId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        if (data) setHistorico(data);
+      } catch (error) {
+        console.error("Erro ao buscar histórico de relatórios:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHistorico();
+  }, [usuario]);
+
+  // Se um relatório estiver ativo, mostra a visualização detalhada
+  if (relatorioAtivo) {
+    return (
+      <ViewRelatorioDetalhado 
+        tipo={relatorioAtivo} 
+        onBack={() => setRelatorioAtivo(null)} 
+        usuario={usuario}
+      />
+    );
+  }
+
+  // Dashboard de relatórios (Histórico + Grid de Geração)
+  return (
+    <div className="space-y-6">
+      {/* KPIs dinâmicos baseados no histórico */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <KpiCard title="Total Relatórios" value={historico.length.toString()} change="" changeType="info" icon={File} />
+        <KpiCard title="Processando" value={historico.filter(h => h.status === 'processando').length.toString()} change="" changeType="info" icon={PackageSearch} />
+        <KpiCard title="Concluídos" value={historico.filter(h => h.status === 'concluido').length.toString()} change="" changeType="info" icon={PackageCheck} />
+        <KpiCard title="Com Erro" value={historico.filter(h => h.status === 'erro').length.toString()} change="" changeType="info" icon={PackageX} />
+      </div>
+
+      {/* Tabela de Histórico */}
+      <ViewHistoricoRelatorios historico={historico} loading={loading} />
+
+      {/* Grid de Geração */}
+      <ViewGerarRelatorios tipos={tiposDeRelatorios} onGerar={(id) => setRelatorioAtivo(id)} />
+    </div>
+  );
+}
+
+// --- Componente Visualização Detalhada do Relatório (Com Fetch Específico) ---
+function ViewRelatorioDetalhado({ tipo, onBack, usuario }: { tipo: string; onBack: () => void; usuario: User }) {
+  const [dados, setDados] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const getTitulo = () => tiposDeRelatorios.find(t => t.id === tipo)?.titulo || 'Relatório';
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
       try {
-        const { data: coops } = await supabase.from('cooperativas').select('*');
-        const { data: pas } = await supabase.from('pontos_atendimento').select('*');
-        setCooperativas(coops || []);
-        setPontosAtendimento(pas || []);
-      } catch (error) {
-        console.error("Erro ao carregar filtros de relatórios:", error);
+        let { data, error } = { data: null, error: null } as any;
+
+        // Seleciona a tabela correta baseada no tipo de relatório
+        // NOTA: Certifique-se de criar essas tabelas ou Views no Supabase
+        switch (tipo) {
+          case 'anuidade':
+            ({ data, error } = await supabase.from('relatorio_anuidade').select('*').limit(50));
+            break;
+          case 'sala_vip':
+            ({ data, error } = await supabase.from('acessos_sala_vip').select('*').limit(50));
+            break;
+          case 'servicos_adicionais':
+            ({ data, error } = await supabase.from('servicos_adicionais').select('*').limit(50));
+            break;
+          case 'carteiras_virtuais':
+            ({ data, error } = await supabase.from('carteiras_virtuais').select('*').limit(50));
+            break;
+          default:
+            // Para outros relatórios não mapeados, não busca nada por enquanto
+            break;
+        }
+
+        if (error) {
+            console.error(`Erro ao buscar relatório ${tipo}:`, error);
+        } else {
+            setDados(data || []);
+        }
+      } catch (err) {
+        console.error("Erro genérico fetch relatorio:", err);
       } finally {
         setLoading(false);
       }
     }
     fetchData();
-  }, []);
-
-  if (relatorioAtivo) {
-    return (
-      <div className="bg-white p-6 rounded shadow">
-          <button onClick={() => setRelatorioAtivo(null)}>Voltar</button>
-          <h2 className="text-xl">Detalhes do Relatório: {relatorioAtivo}</h2>
-      </div>
-    );
-  }
+  }, [tipo]);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <KpiCard title="Total Relatórios" value="5" change="" changeType="info" icon={File} />
+    <div className="bg-white rounded-xl shadow-lg flex flex-col h-full min-h-[600px]">
+      <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+        <div>
+          <h3 className="text-2xl font-semibold text-gray-800 flex items-center">
+            <FileText className="w-6 h-6 mr-2 text-hub-teal" /> {getTitulo()}
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {loading ? "Carregando dados..." : `Visualizando ${dados.length} registros.`}
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <button onClick={onBack} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Voltar</button>
+          <button className="px-4 py-2 bg-hub-teal text-white rounded-lg hover:opacity-90 flex items-center">
+            <FileDown className="w-4 h-4 mr-2"/> Exportar Excel
+          </button>
+        </div>
       </div>
 
-      <ViewHistoricoRelatorios 
-        historico={mockHistoricoRelatorios} 
-        usuario={usuario}
-        listaCooperativas={cooperativas}
-        listaPAs={pontosAtendimento}
-        loading={loading}
-      />
+      <div className="p-6 overflow-x-auto">
+        {loading && <div className="text-center py-10 text-gray-500">Carregando dados do servidor...</div>}
 
-      <ViewGerarRelatorios tipos={mockTiposDeRelatorios} onGerar={(id) => setRelatorioAtivo(id)} />
+        {!loading && dados.length === 0 && (
+             <div className="text-center py-10 text-gray-500">
+                <p>Nenhum dado encontrado para este relatório.</p>
+             </div>
+        )}
+        
+        {/* --- 1. RELATÓRIO DE ANUIDADE --- */}
+        {!loading && tipo === 'anuidade' && dados.length > 0 && (
+          <div>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600 uppercase font-bold">
+                <tr>
+                  <th className="px-4 py-3">CPF/CNPJ</th>
+                  <th className="px-4 py-3">Nome Contratante</th>
+                  <th className="px-4 py-3">Cartão</th>
+                  <th className="px-4 py-3">Valor Mensal</th>
+                  <th className="px-4 py-3">Data Cobrança</th>
+                  <th className="px-4 py-3">Parc. Restantes</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {dados.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">{item.cpf_cnpj}</td>
+                    <td className="px-4 py-3 font-medium">{item.nome}</td>
+                    <td className="px-4 py-3 font-mono">{item.cartao_mascarado}</td>
+                    <td className="px-4 py-3 text-green-700 font-bold">
+                        {Number(item.valor_mensal).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}
+                    </td>
+                    <td className="px-4 py-3">{new Date(item.data_cobranca).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-3 text-center font-bold">{item.parc_restantes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* --- 2. RELATÓRIO DE SALA VIP --- */}
+        {!loading && tipo === 'sala_vip' && dados.length > 0 && (
+          <div>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600 uppercase font-bold">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Produto</th>
+                  <th className="px-4 py-3">Coop / PA</th>
+                  <th className="px-4 py-3">Data Uso</th>
+                  <th className="px-4 py-3">Sala Usada</th>
+                  <th className="px-4 py-3">Custo Extra</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {dados.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{item.nome}</td>
+                    <td className="px-4 py-3">{item.produto}</td>
+                    <td className="px-4 py-3">{item.cooperativa} / {item.pa}</td>
+                    <td className="px-4 py-3">{new Date(item.data_uso).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-3">{item.sala}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${!item.custo_extra ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {item.custo_extra ? `Sim` : 'Não'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* --- 3. RELATÓRIO DE SERVIÇOS ADICIONAIS --- */}
+        {!loading && tipo === 'servicos_adicionais' && dados.length > 0 && (
+          <div>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600 uppercase font-bold">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Produto/Serviço</th>
+                  <th className="px-4 py-3">Valor</th>
+                  <th className="px-4 py-3">Contratação</th>
+                  <th className="px-4 py-3">Situação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {dados.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{item.nome}</td>
+                    <td className="px-4 py-3">{item.produto}</td>
+                    <td className="px-4 py-3 font-bold">{Number(item.valor).toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'})}</td>
+                    <td className="px-4 py-3">{new Date(item.data_contratacao).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-3">
+                      <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-semibold">{item.status}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* --- 4. RELATÓRIO DE CARTEIRAS VIRTUAIS --- */}
+        {!loading && tipo === 'carteiras_virtuais' && dados.length > 0 && (
+          <div>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-100 text-gray-600 uppercase font-bold">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Cartão</th>
+                  <th className="px-4 py-3">Wallet</th>
+                  <th className="px-4 py-3">Ativação</th>
+                  <th className="px-4 py-3">Último Uso</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {dados.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium">{item.nome}</td>
+                    <td className="px-4 py-3 font-mono">{item.cartao_mascarado}</td>
+                    <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold border ${
+                          item.wallet === 'Apple Pay' ? 'bg-gray-900 text-white border-gray-900' :
+                          item.wallet === 'Google Pay' ? 'bg-white text-gray-700 border-gray-300' :
+                          'bg-blue-900 text-white border-blue-900'
+                        }`}>
+                          {item.wallet}
+                        </span>
+                    </td>
+                    <td className="px-4 py-3">{new Date(item.data_ativacao).toLocaleDateString('pt-BR')}</td>
+                    <td className="px-4 py-3">{item.ultimo_uso ? new Date(item.ultimo_uso).toLocaleDateString('pt-BR') : '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${item.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* --- Placeholder para outros relatórios --- */}
+        {!['anuidade', 'sala_vip', 'servicos_adicionais', 'carteiras_virtuais'].includes(tipo) && (
+          <div className="text-center py-10 text-gray-500">
+            <p>Selecione um relatório suportado ou implemente a View no banco de dados.</p>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 }
 
-function ViewHistoricoRelatorios({ historico, usuario, listaCooperativas, listaPAs, loading }: { 
-  historico: HistoricoRelatorio[]; 
-  usuario: User;
-  listaCooperativas: any[];
-  listaPAs: any[];
-  loading: boolean;
-}) {
-  const [filtroCoop, setFiltroCoop] = useState("");
-  const [filtroPA, setFiltroPA] = useState("");
+// --- Componentes de Listagem (Histórico) ---
+function ViewHistoricoRelatorios({ historico, loading }: { historico: HistoricoRelatorio[]; loading: boolean }) {
+  const getStatusClass = (status: HistoricoRelatorio['status']) => {
+    switch (status) {
+      case 'concluido': return 'bg-green-100 text-green-800';
+      case 'processando': return 'bg-yellow-100 text-yellow-800';
+      case 'erro': return 'bg-red-100 text-red-800';
+    }
+  };
 
-  const pasFiltrados = filtroCoop 
-    ? listaPAs.filter(pa => pa.cooperativa_id === filtroCoop)
-    : listaPAs;
+  const getFormatoClass = (formato: HistoricoRelatorio['formato']) => {
+    switch (formato) {
+      case 'XLS': return 'bg-green-700 text-white';
+      case 'PDF': return 'bg-red-700 text-white';
+      case 'CSV': return 'bg-blue-700 text-white';
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg">
       <div className="flex flex-col p-5 border-b border-gray-200 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800">Relatórios Disponíveis</h3>
-        
-        <div className="pt-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Cooperativa</label>
-            <select 
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md"
-              value={filtroCoop}
-              onChange={(e) => { setFiltroCoop(e.target.value); setFiltroPA(""); }}
-              disabled={loading}
-            >
-              <option value="">Todas</option>
-              {listaCooperativas
-                .filter(c => usuario.perfil === 'Central' ? c.central_id === usuario.centralId : true)
-                .map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-              ))}
-            </select>
+            <h3 className="text-lg font-semibold text-gray-800">Relatórios Disponíveis</h3>
+            <p className="text-sm text-gray-500">Geração e download de relatórios</p>
           </div>
+          <button className="flex-shrink-0 flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg shadow-sm hover:opacity-90 transition-opacity">
+            <Plus className="w-5 h-5 mr-2" /> Novo Relatório
+          </button>
         </div>
       </div>
-      
+
       <div className="overflow-x-auto">
         <table className="w-full min-w-max">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Período</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cooperativa</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Formato</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gerado em</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
+            {loading && (
+                <tr><td colSpan={7} className="p-4 text-center text-gray-500">Carregando histórico...</td></tr>
+            )}
+            {!loading && historico.length === 0 && (
+                <tr><td colSpan={7} className="p-4 text-center text-gray-500">Nenhum relatório gerado recentemente.</td></tr>
+            )}
             {historico.map((rel) => (
               <tr key={rel.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{rel.tipo}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rel.status}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rel.periodo}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{rel.cooperativa}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-xs font-bold"><span className={`px-2 py-0.5 rounded-md ${getFormatoClass(rel.formato)}`}>{rel.formato}</span></td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(rel.data_geracao).toLocaleString('pt-BR')}</td>
+                <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2.5 py-0.5 inline-flex text-xs font-semibold rounded-full ${getStatusClass(rel.status)}`}>{rel.status}</span></td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                  <button title="Re-gerar" className="text-gray-400 hover:text-hub-teal p-1"><RefreshCw className="w-5 h-5" /></button>
+                  {rel.status === 'concluido' && <button title="Exportar" className="text-hub-teal hover:text-hub-teal-dark p-1"><FileDown className="w-5 h-5" /></button>}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -4656,20 +4930,25 @@ function ViewGerarRelatorios({ tipos, onGerar }: { tipos: RelatorioTipo[], onGer
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
        <h3 className="text-lg font-semibold text-gray-800">Gerar Novo Relatório</h3>
+       <p className="text-sm text-gray-500 mb-4">Selecione um relatório para visualizar ou gerar sob demanda.</p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {tipos.map(rel => (
-          <div key={rel.id} className="p-5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-start">
+          <div key={rel.id} className="p-5 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-start transition hover:shadow-md cursor-pointer" onClick={() => onGerar(rel.id)}>
             <div className="flex">
+              <div className="p-3 bg-gray-100 rounded-lg mr-4">
+                <rel.icon className="w-6 h-6 text-hub-teal" />
+              </div>
               <div>
                 <h4 className="text-md font-semibold text-gray-800">{rel.titulo}</h4>
+                <p className="text-sm text-gray-500 mt-1">{rel.desc}</p>
+                <p className="text-xs text-gray-400 mt-2">Gerados: {rel.gerados}</p>
               </div>
             </div>
             <button 
-              onClick={() => onGerar(rel.id)}
-              className="text-sm font-medium text-hub-teal hover:text-hub-teal-dark border border-hub-teal px-3 py-1 rounded hover:bg-teal-50 transition"
+              className="text-xs font-medium text-hub-teal border border-hub-teal px-2 py-1 rounded hover:bg-teal-50 transition"
             >
-              Gerar
+              Abrir
             </button>
           </div>
         ))}
