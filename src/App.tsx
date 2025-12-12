@@ -6802,15 +6802,9 @@ const mockRegrasLimite: RegraLimite[] = [
   { id: 1, origem: "Cooperativa", gatilhoPorcentagem: 10, aprovadorDestino: "Central" },
   { id: 2, origem: "PA", gatilhoPorcentagem: 15, aprovadorDestino: "Central" },
   { id: 3, origem: "Cooperado", gatilhoPorcentagem: 20, aprovadorDestino: "Central" },
-  { id: 1, origem: "Cooperativa", gatilhoPorcentagem: 10, aprovadorDestino: "Central" },
-  { id: 2, origem: "PA", gatilhoPorcentagem: 15, aprovadorDestino: "Central" },
-  { id: 3, origem: "Cooperado", gatilhoPorcentagem: 20, aprovadorDestino: "Central" },
 ];
 
 const mockSolicitacoesLimite: SolicitacaoLimite[] = [
-  { id: 1, solicitante: "Cooperativa Coopesa", tipoSolicitante: "Cooperativa", limiteAtual: 8000000, limiteSolicitado: 9500000, aumentoPorcentagem: 18.75, status: "Pendente" },
-  { id: 2, solicitante: "PA 03 (Coopesa)", tipoSolicitante: "PA", limiteAtual: 500000, limiteSolicitado: 600000, aumentoPorcentagem: 20.0, status: "Pendente" },
-  { id: 3, solicitante: "Maria Santos (Cooperado)", tipoSolicitante: "Cooperado", limiteAtual: 5000, limiteSolicitado: 8000, aumentoPorcentagem: 60.0, status: "Pendente" },
   { id: 1, solicitante: "Cooperativa Coopesa", tipoSolicitante: "Cooperativa", limiteAtual: 8000000, limiteSolicitado: 9500000, aumentoPorcentagem: 18.75, status: "Pendente" },
   { id: 2, solicitante: "PA 03 (Coopesa)", tipoSolicitante: "PA", limiteAtual: 500000, limiteSolicitado: 600000, aumentoPorcentagem: 20.0, status: "Pendente" },
   { id: 3, solicitante: "Maria Santos (Cooperado)", tipoSolicitante: "Cooperado", limiteAtual: 5000, limiteSolicitado: 8000, aumentoPorcentagem: 60.0, status: "Pendente" },
@@ -6846,9 +6840,6 @@ function PaginaGestaoLimites({ usuario }: { usuario: User }) {
 
       {/* Conteúdo das Abas */}
       <div className="animate-fade-in">
-        {activeTab === "definir" && <TabDefinirLimites usuario={usuario} />}
-        {activeTab === "autorizacoes" && <TabAutorizacoesLimites usuario={usuario} />}
-        {activeTab === "configuracoes" && <TabConfiguracaoRegras usuario={usuario} />}
         {activeTab === "definir" && <TabDefinirLimites usuario={usuario} />}
         {activeTab === "autorizacoes" && <TabAutorizacoesLimites usuario={usuario} />}
         {activeTab === "configuracoes" && <TabConfiguracaoRegras usuario={usuario} />}
@@ -7039,18 +7030,10 @@ function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <h3 className="text-xl font-semibold text-gray-800 mb-4">Autorizações de Aumento de Limite</h3>
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">Autorizações de Aumento de Limite</h3>
       <div className="overflow-x-auto">
         <table className="w-full min-w-max">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitante</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Nível</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Limite Atual</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitado</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">% Aumento</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Ação</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Solicitante</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Nível</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500">Limite Atual</th>
@@ -7069,15 +7052,7 @@ function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
                 <td className="px-6 py-4 font-bold text-hub-teal">{sol.limiteSolicitado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
                 <td className="px-6 py-4"><span className="text-red-600 font-bold">+{sol.aumentoPorcentagem.toFixed(2)}%</span></td>
                 <td className="px-6 py-4"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">{sol.status}</span></td>
-                <td className="px-6 py-4 font-medium text-gray-900">{sol.solicitante}</td>
-                <td className="px-6 py-4"><span className="px-2 py-1 bg-gray-100 rounded text-xs font-semibold text-gray-600">{sol.tipoSolicitante}</span></td>
-                <td className="px-6 py-4 text-gray-500">{sol.limiteAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
-                <td className="px-6 py-4 font-bold text-hub-teal">{sol.limiteSolicitado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
-                <td className="px-6 py-4"><span className="text-red-600 font-bold">+{sol.aumentoPorcentagem.toFixed(2)}%</span></td>
-                <td className="px-6 py-4"><span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">{sol.status}</span></td>
                 <td className="px-6 py-4 space-x-2">
-                  <button className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">Aprovar</button>
-                  <button className="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">Rejeitar</button>
                   <button className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition">Aprovar</button>
                   <button className="text-xs bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition">Rejeitar</button>
                 </td>
@@ -7093,8 +7068,7 @@ function TabAutorizacoesLimites({ usuario }: { usuario: User }) {
   );
 }
 
-// --- ABA 3: CONFIGURAÇÃO DE REGRAS (Mantida) ---
-// --- ABA 3: CONFIGURAÇÃO DE REGRAS (corrigida) ---
+
 function TabConfiguracaoRegras({ usuario }: { usuario: User }) {
   const [regras, setRegras] = useState<
     { id: number; origem: string; aprovadorDestino: string; gatilhoPorcentagem?: number }[]
@@ -7976,227 +7950,7 @@ function ModalGerenciarServico({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center pb-4 border-b mb-4">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">
-              Gerenciar {servico.tipo}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {servico.cooperadoNome} - Cartão final{" "}
-              {servico.cartaoMascarado.slice(-4)}
-            </p>
-          </div>
-          <button onClick={onClose}>
-            <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
-
-        {/* --- CONTEÚDO SE FOR PPR --- */}
-        {servico.tipo === "PPR" && servico.parcelas && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex justify-between items-center">
-              <div>
-                <span className="block text-xs text-blue-600 uppercase font-bold">
-                  Status do Contrato
-                </span>
-                <span className="text-lg font-bold text-blue-900">
-                  {
-                    servico.parcelas.filter(
-                      (p) => p.status === "Paga",
-                    ).length
-                  }{" "}
-                  de {servico.parcelas.length} parcelas pagas
-                </span>
-              </div>
-              <ShieldAlert className="w-8 h-8 text-blue-300" />
-            </div>
-
-            <h4 className="font-semibold text-gray-700 mt-4">
-              Detalhamento das Parcelas
-            </h4>
-            <div className="border rounded-lg overflow-hidden">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500">
-                  <tr>
-                    <th className="px-4 py-2">#</th>
-                    <th className="px-4 py-2">Vencimento</th>
-                    <th className="px-4 py-2">Status</th>
-                    <th className="px-4 py-2">Valor</th>
-                    <th className="px-4 py-2">Ação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {servico.parcelas.map((p) => (
-                    <tr key={p.numero}>
-                      <td className="px-4 py-2">{p.numero}</td>
-                      <td className="px-4 py-2">
-                        {p.vencimento}
-                      </td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            p.status === "Paga"
-                              ? "bg-green-100 text-green-700"
-                              : p.status === "Pendente"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 font-medium">
-                        {editandoParcela === p.numero ? (
-                          <input
-                            type="number"
-                            className="w-20 px-1 border rounded focus:ring-2 focus:ring-hub-teal"
-                            defaultValue={p.valor}
-                            onChange={(e) =>
-                              setNovoValorParcela(
-                                e.target.value,
-                              )
-                            }
-                          />
-                        ) : (
-                          p.valor.toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        {p.status !== "Paga" &&
-                          (editandoParcela === p.numero ? (
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() =>
-                                  handleSalvarParcela(p.numero)
-                                }
-                                className="text-green-600 hover:text-green-800"
-                                title="Salvar"
-                              >
-                                <Save className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setEditandoParcela(null)
-                                }
-                                className="text-gray-400 hover:text-gray-600"
-                                title="Cancelar"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                setEditandoParcela(p.numero);
-                                setNovoValorParcela(
-                                  p.valor.toString(),
-                                );
-                              }}
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Editar Valor"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                          ))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* --- CONTEÚDO SE FOR NOTIFICAÇÃO --- */}
-        {servico.tipo === "Notificacao" && (
-          <div className="space-y-6">
-            <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h4 className="font-semibold text-gray-800 mb-4 border-b pb-2">
-                Configuração de Envio
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Canal de Envio
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-hub-teal focus:border-hub-teal"
-                    value={configNotificacao.canal}
-                    onChange={(e) =>
-                      setConfigNotificacao({
-                        ...configNotificacao,
-                        canal: e.target
-                          .value as CanalNotificacao,
-                      })
-                    }
-                  >
-                    <option value="SMS">SMS</option>
-                    <option value="WhatsApp">WhatsApp</option>
-                    <option value="Ambos">
-                      Ambos (SMS + WhatsApp)
-                    </option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Valor Mensal (R$)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-hub-teal focus:border-hub-teal"
-                    value={configNotificacao.valor}
-                    onChange={(e) =>
-                      setConfigNotificacao({
-                        ...configNotificacao,
-                        valor: parseFloat(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 p-3 bg-blue-50 rounded text-sm text-blue-800">
-                <p>
-                  <strong>Nota:</strong> A alteração do canal de
-                  envio pode impactar o custo mensal. Confirme
-                  com o cooperado antes de salvar.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={handleSalvarNotificacao}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md flex items-center"
-              >
-                <Save className="w-4 h-4 mr-2" /> Salvar
-                Alterações
-              </button>
-            </div>
-          </div>
-        )}
-
-        {servico.tipo === "PPR" && (
-          <div className="mt-6 flex justify-end border-t pt-4">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-            >
-              Fechar
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  
 }
 // =======================================================================
 // 22. PÁGINA DE LANÇAMENTOS (ANTIGA BAIXAS) - APENAS CENTRAL
@@ -9117,133 +8871,7 @@ function ModalAvaliarWallet({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fade-in p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
-        <div className="flex justify-between items-center p-5 border-b bg-gray-50">
-          <h3 className="text-lg font-bold text-gray-800">
-            Autorização de Provisionamento
-          </h3>
-          <button onClick={onClose}>
-            <X className="w-6 h-6 text-gray-400 hover:text-gray-600" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-4">
-          {/* Info Principal */}
-          <div className="flex items-center justify-center mb-4">
-            <div className="text-center">
-              <span
-                className={`inline-block px-4 py-1 rounded-full text-sm font-bold mb-2 ${
-                  solicitacao.wallet === "Apple Pay"
-                    ? "bg-black text-white"
-                    : solicitacao.wallet === "Google Pay"
-                      ? "bg-blue-50 text-blue-600 border border-blue-200"
-                      : "bg-blue-900 text-white"
-                }`}
-              >
-                Adicionar ao {solicitacao.wallet}
-              </span>
-              <p className="text-gray-500 text-xs">
-                {solicitacao.dataSolicitacao}
-              </p>
-            </div>
-          </div>
-
-          {/* Detalhes do Portador */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Cooperado:</span>
-              <span className="font-bold text-gray-800">
-                {solicitacao.cooperado}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Cartão:</span>
-              <span className="font-mono font-bold text-gray-800">
-                {solicitacao.cartaoMascarado}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">ID Cartão:</span>
-              <span className="font-medium text-gray-800">
-                {solicitacao.idCartao}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Produto:</span>
-              <span className="font-medium text-gray-800">
-                {solicitacao.produto}
-              </span>
-            </div>
-          </div>
-
-          {/* Método de Validação */}
-          <div className="border-t pt-4">
-            <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">
-              Método de Validação Requerido
-            </label>
-            <div className="flex items-center p-3 bg-blue-50 border border-blue-100 rounded-lg text-blue-800">
-              {solicitacao.metodo === "OTP (SMS)" && (
-                <Smartphone className="w-5 h-5 mr-2" />
-              )}
-              {solicitacao.metodo === "App-to-App" && (
-                <CheckCircle2 className="w-5 h-5 mr-2" />
-              )}
-              {solicitacao.metodo === "Call Center" && (
-                <History className="w-5 h-5 mr-2" />
-              )}
-
-              <div>
-                <span className="block font-bold">
-                  {solicitacao.metodo}
-                </span>
-                <span className="text-xs opacity-80">
-                  {solicitacao.metodo === "OTP (SMS)"
-                    ? "Enviar código para celular cadastrado."
-                    : solicitacao.metodo === "App-to-App"
-                      ? "Validação via token do aplicativo."
-                      : "Confirmação positiva de dados via atendimento."}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Risco (Mock Visual) */}
-          <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>Score de Risco:</span>
-            <span
-              className={`font-bold ${
-                solicitacao.scoreRisco === "Baixo"
-                  ? "text-green-600"
-                  : solicitacao.scoreRisco === "Médio"
-                    ? "text-yellow-600"
-                    : "text-red-600"
-              }`}
-            >
-              {solicitacao.scoreRisco}
-            </span>
-          </div>
-        </div>
-
-        {/* Rodapé Ações */}
-        <div className="p-5 border-t bg-gray-50 flex space-x-3">
-          <button
-            onClick={() => handleAction("Negar")}
-            className="flex-1 py-3 bg-white border border-red-200 text-red-600 font-bold rounded-lg hover:bg-red-50 transition shadow-sm"
-          >
-            Negar Solicitação
-          </button>
-          <button
-            onClick={() => handleAction("Aprovar")}
-            className="flex-1 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-md"
-          >
-            Aprovar Adição
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  
 }
 
 // =======================================================================
